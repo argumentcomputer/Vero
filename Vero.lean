@@ -3,10 +3,10 @@ import Vero.Syntax.DSL
 
 open Vero.Syntax.DSL in
 #eval ⟦
-  a := 4
+  a := x
   a * 3 * 5
 ⟧.compile
--- ok: @0 = 4
+-- @0 = x
 -- @1 = @0
 -- @2 = @1
 -- @3 = 3

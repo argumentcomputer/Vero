@@ -7,33 +7,29 @@ namespace Circuit
 @[inline] def fmtIdx (i : Nat) : String :=
   s!"@{i}"
 
-inductive Op
-  | add | mul
-  deriving Repr
-
-def Op.toString : Op → String
-  | .add => "+"
-  | .mul => "*"
-
-instance : ToString Op := ⟨Op.toString⟩
-
 inductive Input
-  | num : Nat → Input
-  | var : Nat → Input
+  | const : Nat → Input
+  | inner : Nat → Input
+  | outer : String → Input
+  deriving Inhabited
 
 def Input.toString : Input → String
-  | .num n => ToString.toString n
-  | .var i => fmtIdx i
+  | .const n => ToString.toString n
+  | .inner i => fmtIdx i
+  | .outer s => s
 
 instance : ToString Input := ⟨Input.toString⟩
 
 inductive Gate
-  | eqId : Input → Gate
-  | eqOp : Op → Input → Input → Gate
+  | uno : Input → Gate
+  | add : Input → Input → Gate
+  | mul : Input → Input → Gate
+  deriving Inhabited
 
 def Gate.toString : Gate → String
-  | .eqId inp => inp.toString
-  | .eqOp op inp₁ inp₂ => s!"{inp₁} {op} {inp₂}"
+  | .uno inp => inp.toString
+  | .add inp₁ inp₂ => s!"{inp₁} + {inp₂}"
+  | .mul inp₁ inp₂ => s!"{inp₁} * {inp₂}"
 
 instance : ToString Gate := ⟨Gate.toString⟩
 
@@ -41,10 +37,35 @@ end Circuit
 
 abbrev Circuit := Array Circuit.Gate
 
-def Circuit.toString (c : Circuit) : String :=
-  c.data.enum.foldl (init := "") fun acc (i, g) =>
-    s!"{acc}{fmtIdx i} = {g}\n"
+namespace Circuit
 
-instance : ToString Circuit := ⟨Circuit.toString⟩
+def toString (c : Circuit) : String :=
+  "\n".intercalate $ c.data.enum.map fun (i, g) => s!"{fmtIdx i} = {g}"
+
+instance : ToString Circuit := ⟨toString⟩
+
+partial def findShortcut (c : Circuit) : Input → Input
+  | inp@(.const _)
+  | inp@(.outer _) => inp
+  | inp@(.inner i) => match c[i]! with
+    | .uno inp => findShortcut c inp
+    | _ => inp
+
+def shortcutAt (c : Circuit) (i : Nat) : Circuit :=
+  c.set! i $ match c[i]! with
+    | .uno inp => .uno (c.findShortcut inp)
+    | .add inp₁ inp₂ => .add (c.findShortcut inp₁) (c.findShortcut inp₂)
+    | .mul inp₁ inp₂ => .mul (c.findShortcut inp₁) (c.findShortcut inp₂)
+
+def optimize (c : Circuit) : Circuit := Id.run do
+  let mut c := c
+  let mut i := c.size - 1
+  while true do
+    c := c.shortcutAt i
+    i := i - 1
+    if i == 0 then break
+  return c
+
+end Circuit
 
 end Vero
