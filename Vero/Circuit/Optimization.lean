@@ -43,9 +43,6 @@ partial def optimize (g : Gate) : Gate :=
 
 end Gate
 
-def optimize : Circuit → Circuit :=
-  Gate.optimize
-
 end Circuit
 
 end Vero

@@ -1,9 +1,7 @@
 import Vero.Syntax.Expr
 import Vero.Circuit.Optimization
 
-namespace Vero
-
-namespace Compiler
+namespace Vero.Circuit.Transformer
 
 open Circuit
 
@@ -12,23 +10,25 @@ abbrev CompileM := ReaderT (Std.RBMap String Circuit compare) Id
 def withVar (s : String) (c : Circuit) : CompileM α → CompileM α :=
   withReader fun e => e.insert s c
 
-def compile : Syntax.Expr → CompileM Circuit
+def transform : Syntax.Expr → CompileM Circuit
   | .var s => return match (← read).find? s with
     | some i => .uno (.inner i)
     | none => .uno (.outer s)
   | .num n => return .uno (.const n)
   | .binOp op e₁ e₂ => do
-    let g₁ ← compile e₁
-    let g₂ ← compile e₂
+    let g₁ ← transform e₁
+    let g₂ ← transform e₂
     return match op with
     | .add => .add (.inner g₁) (.inner g₂)
     | .mul => .mul (.inner g₁) (.inner g₂)
   | .letIn s v b => do
-    let gᵥ ← compile v
+    let gᵥ ← transform v
     let gₛ := .uno (.inner gᵥ)
-    withVar s gₛ $ compile b
+    withVar s gₛ $ transform b
 
-end Compiler
+end Circuit.Transformer
 
 def Syntax.Expr.toCircuit (e : Syntax.Expr) : Circuit :=
-  (ReaderT.run (Compiler.compile e.normalize) default).optimize
+  (ReaderT.run (Circuit.Transformer.transform e.normalize) default).optimize
+
+end Vero
