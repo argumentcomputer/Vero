@@ -11,7 +11,7 @@ inductive Input
   | const : Nat → Input
   | inner : Nat → Input
   | outer : String → Input
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 def Input.toString : Input → String
   | .const n => ToString.toString n
@@ -24,7 +24,7 @@ inductive Gate
   | uno : Input → Gate
   | add : Input → Input → Gate
   | mul : Input → Input → Gate
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 def Gate.toString : Gate → String
   | .uno inp => inp.toString
@@ -44,6 +44,12 @@ def toString (c : Circuit) : String :=
 
 instance : ToString Circuit := ⟨toString⟩
 
+def merge (c : Circuit) : Circuit :=
+  c.map fun g => match g with
+    | .add (.const c₁) (.const c₂) => .uno $ .const (c₁ + c₂)
+    | .mul (.const c₁) (.const c₂) => .uno $ .const (c₁ * c₂)
+    | g => g
+
 partial def findShortcut (c : Circuit) : Input → Input
   | inp@(.const _)
   | inp@(.outer _) => inp
@@ -51,20 +57,28 @@ partial def findShortcut (c : Circuit) : Input → Input
     | .uno inp => findShortcut c inp
     | _ => inp
 
-def shortcutAt (c : Circuit) (i : Nat) : Circuit :=
-  c.set! i $ match c[i]! with
-    | .uno inp => .uno (c.findShortcut inp)
-    | .add inp₁ inp₂ => .add (c.findShortcut inp₁) (c.findShortcut inp₂)
-    | .mul inp₁ inp₂ => .mul (c.findShortcut inp₁) (c.findShortcut inp₂)
-
-def optimize (c : Circuit) : Circuit := Id.run do
+def shortcut (c : Circuit) : Circuit := Id.run do
   let mut c := c
   let mut i := c.size - 1
-  while true do
-    c := c.shortcutAt i
+  while i > 0 do
+    c := c.set! i $ match c[i]! with
+      | .uno inp => .uno (c.findShortcut inp)
+      | .add inp₁ inp₂ => .add (c.findShortcut inp₁) (c.findShortcut inp₂)
+      | .mul inp₁ inp₂ => .mul (c.findShortcut inp₁) (c.findShortcut inp₂)
     i := i - 1
-    if i == 0 then break
   return c
+
+def prune (c : Circuit) : Circuit := Id.run do
+  let mut gs : List Gate := []
+  ⟨gs⟩
+
+def optimize (c : Circuit) : Circuit := Id.run do
+  let mut c  := c
+  let mut c' := c.merge.shortcut--.prune
+  while c' != c do
+    c  := c'
+    c' := c.merge.shortcut--.prune
+  return c'
 
 end Circuit
 
