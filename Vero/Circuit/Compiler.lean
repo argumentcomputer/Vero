@@ -34,4 +34,4 @@ def compile : Syntax.Expr → CompileM Nat
 end Compiler
 
 def Syntax.Expr.compile (e : Syntax.Expr) : Circuit :=
-  (StateT.run (ReaderT.run (Compiler.compile e) default) default).2.optimize
+  (StateT.run (ReaderT.run (Compiler.compile e.normalize) default) default).2.optimize
