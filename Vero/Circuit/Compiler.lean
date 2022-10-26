@@ -5,33 +5,30 @@ namespace Vero
 
 namespace Compiler
 
-abbrev Context := Std.RBMap String Nat compare
+open Circuit
 
-abbrev CompileM := ReaderT Context $ StateM Circuit
+abbrev CompileM := ReaderT (Std.RBMap String Gate compare) Id
 
-def addGate (g : Circuit.Gate) : CompileM Nat :=
-  modifyGet fun c => (c.size, c.push g)
+def withVar (s : String) (g : Gate) : CompileM α → CompileM α :=
+  withReader fun e => e.insert s g
 
-def withVar (s : String) (i : Nat) : CompileM α → CompileM α :=
-  withReader fun e => e.insert s i
-
-def compile : Syntax.Expr → CompileM Nat
-  | .var s => do match (← read).find? s with
-    | some i => addGate $ .uno (.inner i)
-    | none => addGate $ .uno (.outer s)
-  | .num n => addGate $ .uno (.const n)
+def compile : Syntax.Expr → CompileM Gate
+  | .var s => return match (← read).find? s with
+    | some i => .uno (.inner i)
+    | none => .uno (.outer s)
+  | .num n => return .uno (.const n)
   | .binOp op e₁ e₂ => do
-    let i₁ ← compile e₁
-    let i₂ ← compile e₂
-    match op with
-    | .add => addGate $ .add (.inner i₁) (.inner i₂)
-    | .mul => addGate $ .mul (.inner i₁) (.inner i₂)
+    let g₁ ← compile e₁
+    let g₂ ← compile e₂
+    return match op with
+    | .add => .add (.inner g₁) (.inner g₂)
+    | .mul => .mul (.inner g₁) (.inner g₂)
   | .letIn s v b => do
-    let iᵥ ← compile v
-    let iₛ ← addGate $ .uno (.inner iᵥ)
-    withVar s iₛ $ compile b
+    let gᵥ ← compile v
+    let gₛ := .uno (.inner gᵥ)
+    withVar s gₛ $ compile b
 
 end Compiler
 
-def Syntax.Expr.compile (e : Syntax.Expr) : Circuit :=
-  (StateT.run (ReaderT.run (Compiler.compile e.normalize) default) default).2.optimize
+def Syntax.Expr.compile (e : Syntax.Expr) : Circuit.Gate :=
+  (ReaderT.run (Compiler.compile e.normalize) default).optimize
