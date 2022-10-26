@@ -1,5 +1,5 @@
-import Vero.Circuit.Types
 import Vero.Syntax.Expr
+import Vero.Circuit.Optimization
 
 namespace Vero
 
@@ -7,12 +7,12 @@ namespace Compiler
 
 open Circuit
 
-abbrev CompileM := ReaderT (Std.RBMap String Gate compare) Id
+abbrev CompileM := ReaderT (Std.RBMap String Circuit compare) Id
 
-def withVar (s : String) (g : Gate) : CompileM α → CompileM α :=
-  withReader fun e => e.insert s g
+def withVar (s : String) (c : Circuit) : CompileM α → CompileM α :=
+  withReader fun e => e.insert s c
 
-def compile : Syntax.Expr → CompileM Gate
+def compile : Syntax.Expr → CompileM Circuit
   | .var s => return match (← read).find? s with
     | some i => .uno (.inner i)
     | none => .uno (.outer s)
@@ -30,5 +30,5 @@ def compile : Syntax.Expr → CompileM Gate
 
 end Compiler
 
-def Syntax.Expr.compile (e : Syntax.Expr) : Circuit.Gate :=
+def Syntax.Expr.toCircuit (e : Syntax.Expr) : Circuit :=
   (ReaderT.run (Compiler.compile e.normalize) default).optimize
