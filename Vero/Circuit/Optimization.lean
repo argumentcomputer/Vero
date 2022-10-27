@@ -10,34 +10,38 @@ def Input.findShortcut : Input → Input
 
 namespace Gate
 
-def merge : Gate → Gate
-  | add (.const c₁) (.const c₂) => uno $ .const (c₁ + c₂)
-  | mul (.const c₁) (.const c₂) => uno $ .const (c₁ * c₂)
-  | uno (.inner g) => uno (.inner g.merge)
-  | add (.inner g₁) (.inner g₂) => add (.inner g₁.merge) (.inner g₂.merge)
-  | add (.inner g) i => add (.inner g.merge) i
-  | add i (.inner g) => add i (.inner g.merge)
-  | mul (.inner g₁) (.inner g₂) => mul (.inner g₁.merge) (.inner g₂.merge)
-  | mul (.inner g) i => mul (.inner g.merge) i
-  | mul i (.inner g) => mul i (.inner g.merge)
+def unifyAdd : Gate → Gate
+  | g@(duo .add i₁ i₂) => match compare i₁ i₂ with
+    | .eq => duo .mul (.const 2) i₁
+    | _ => g
+  | uno (.inner g) => uno (.inner g.unifyAdd)
+  | duo op (.inner g₁) (.inner g₂) => duo op (.inner g₁.unifyAdd) (.inner g₂.unifyAdd)
+  | duo op (.inner g) i => duo op (.inner g.unifyAdd) i
+  | duo op i (.inner g) => duo op i (.inner g.unifyAdd)
   | g => g
 
+def mergeConst : Gate → Gate
+  | duo .add (.const c₁) (.const c₂) => uno $ .const (c₁ + c₂)
+  | duo .mul (.const c₁) (.const c₂) => uno $ .const (c₁ * c₂)
+  | uno (.inner g) => uno (.inner g.mergeConst)
+  | duo op (.inner g₁) (.inner g₂) =>
+    duo op (.inner g₁.mergeConst) (.inner g₂.mergeConst)
+  | duo op (.inner g) i => duo op (.inner g.mergeConst) i
+  | duo op i (.inner g) => duo op i (.inner g.mergeConst)
+  | g => g
+
+open Input in
 def shortcut : Gate → Gate
   | uno (.inner g) => g.shortcut
   | uno i => uno i.findShortcut
-  | add (.inner g₁) (.inner g₂) =>
-    add (Input.inner g₁.shortcut).findShortcut (Input.inner g₂.shortcut).findShortcut
-  | add i₁ (.inner g) => add i₁.findShortcut (Input.inner g.shortcut).findShortcut
-  | add (.inner g) i₂ => add (Input.inner g.shortcut).findShortcut i₂.findShortcut
-  | add i₁ i₂ => add i₁.findShortcut i₂.findShortcut
-  | mul (.inner g₁) (.inner g₂) =>
-    mul (Input.inner g₁.shortcut).findShortcut (Input.inner g₂.shortcut).findShortcut
-  | mul i₁ (.inner g) => mul i₁.findShortcut (Input.inner g.shortcut).findShortcut
-  | mul (.inner g) i₂ => mul (Input.inner g.shortcut).findShortcut i₂.findShortcut
-  | mul i₁ i₂ => mul i₁.findShortcut i₂.findShortcut
+  | duo op (.inner g₁) (.inner g₂) =>
+    duo op (findShortcut (.inner g₁.shortcut)) (findShortcut (.inner g₂.shortcut))
+  | duo op i₁ (.inner g) => duo op i₁.findShortcut (findShortcut (.inner g.shortcut))
+  | duo op (.inner g) i₂ => duo op (findShortcut (.inner g.shortcut)) i₂.findShortcut
+  | duo op i₁ i₂ => duo op i₁.findShortcut i₂.findShortcut
 
 partial def optimize (g : Gate) : Gate :=
-  let g' := g.merge.shortcut
+  let g' := g.unifyAdd.mergeConst.shortcut
   if g' != g then g'.optimize
   else g'
 

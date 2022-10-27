@@ -18,9 +18,8 @@ def transform : Syntax.Expr → CompileM Circuit
   | .binOp op e₁ e₂ => do
     let g₁ ← transform e₁
     let g₂ ← transform e₂
-    return match op with
-    | .add => .add (.inner g₁) (.inner g₂)
-    | .mul => .mul (.inner g₁) (.inner g₂)
+    let op := match op with | .add => .add | .mul => .mul
+    return .duo op (.inner g₁) (.inner g₂)
   | .letIn s v b => do
     let gᵥ ← transform v
     let gₛ := .uno (.inner gᵥ)
