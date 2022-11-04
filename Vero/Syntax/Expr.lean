@@ -11,6 +11,8 @@ inductive Expr
   | var : String → Expr
   | binOp : BinOp → Expr → Expr → Expr
   | letIn : String → Expr → Expr → Expr
+  | lam : String → Expr → Expr
+  | app : Expr → Expr → Expr
   deriving Ord, Inhabited
 
 def Expr.getAddLeaves (acc : Std.RBTree Expr compare := default) :
@@ -30,7 +32,6 @@ def Expr.getMulLeaves (acc : Std.RBTree Expr compare := default) :
 def Expr.normalize : Expr → Expr
   | e@(var _)
   | e@(num _) => e
-  | letIn s v b => letIn s v.normalize b.normalize
   | e@(binOp .add e₁ e₂) => match e.getAddLeaves with
     | some leaves => match leaves.toList with
       | h :: t => t.foldl (init := h) fun acc e => .binOp .add acc e
@@ -41,5 +42,8 @@ def Expr.normalize : Expr → Expr
       | h :: t => t.foldl (init := h) fun acc e => .binOp .mul acc e
       | [] => unreachable!
     | none => binOp .mul e₁.normalize e₂.normalize
+  | letIn s v b => letIn s v.normalize b.normalize
+  | lam s b => lam s b.normalize
+  | app f a => app f.normalize a.normalize
 
 end Vero.Syntax

@@ -3,6 +3,6 @@ import Vero.Syntax.DSL
 
 open Vero.Syntax.DSL in
 #eval ⟦
-  a := x
-  2 * a * 3
+  f x y := x + y;
+  2 * (f 3 5)
 ⟧.toCircuit
