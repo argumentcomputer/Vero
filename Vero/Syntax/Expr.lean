@@ -4,7 +4,7 @@ namespace Vero.Syntax
 
 inductive BinOp
   | add | mul
-  deriving Ord
+  deriving Ord, Repr
 
 inductive Expr
   | num : Nat → Expr
@@ -13,17 +13,17 @@ inductive Expr
   | letIn : String → Expr → Expr → Expr
   | lam : String → Expr → Expr
   | app : Expr → Expr → Expr
-  deriving Ord, Inhabited
+  deriving Ord, Inhabited, Repr
 
-def Expr.getAddLeaves (acc : Std.RBTree Expr compare := default) :
-    Expr → Option (Std.RBTree Expr compare)
+def Expr.getAddLeaves (acc : Lean.RBTree Expr compare := default) :
+    Expr → Option (Lean.RBTree Expr compare)
   | e@(var _)
   | e@(num _) => acc.insert e
   | binOp .add e₁ e₂ => do e₂.getAddLeaves (← e₁.getAddLeaves acc)
   | _ => none
 
-def Expr.getMulLeaves (acc : Std.RBTree Expr compare := default) :
-    Expr → Option (Std.RBTree Expr compare)
+def Expr.getMulLeaves (acc : Lean.RBTree Expr compare := default) :
+    Expr → Option (Lean.RBTree Expr compare)
   | e@(var _)
   | e@(num _) => acc.insert e
   | binOp .mul e₁ e₂ => do e₂.getMulLeaves (← e₁.getMulLeaves acc)

@@ -3,35 +3,26 @@ import Vero.Circuit.Optimization
 
 namespace Vero.Circuit.Transformer
 
-open Circuit
+open Circuit Syntax
 
-abbrev CompileM := ReaderT (Std.RBMap String Circuit compare) $ ExceptT String Id
+abbrev CompileM := ReaderT (Lean.RBMap String Expr compare) $ ExceptT String Id
 
-def withVar (s : String) (c : Circuit) : CompileM α → CompileM α :=
-  withReader fun e => e.insert s c
+def withVar (s : String) (e : Expr) : CompileM α → CompileM α :=
+  withReader fun ctx => ctx.insert s e
 
-def transform : Syntax.Expr → CompileM Circuit
-  | .var s => return match (← read).find? s with
-    | some i => .uno (.inner i)
-    | none => .uno (.outer s)
+partial def transform : Syntax.Expr → CompileM Circuit
+  | .var s => do match (← read).find? s with
+    | some e => return .uno (.inner (← transform e))
+    | none => return .uno (.outer s)
   | .num n => return .uno (.const n)
   | .binOp op e₁ e₂ => do
-    let g₁ ← transform e₁
-    let g₂ ← transform e₂
+    let c₁ ← transform e₁
+    let c₂ ← transform e₂
     let op := match op with | .add => .add | .mul => .mul
-    return .duo op (.inner g₁) (.inner g₂)
-  | .letIn s v b => do
-    let gᵥ ← transform v
-    let gₛ := .uno (.inner gᵥ)
-    withVar s gₛ $ transform b
-  | .lam a b => do
-    let gₐ := .uno (.outer a)
-    withVar a gₐ $ transform b
-  | .app f a => do match (← transform f).optimize with -- is this correct?
-    | .uno (.outer _) => return .uno (.inner $ ← transform a)
-    | .duo op (.outer _) i => return .duo op (.inner $ ← transform a) i
-    | .duo op i (.outer _) => return .duo op i (.inner $ ← transform a)
-    | _ => throw "Application on a circuit that doesn't allow outer input"
+    return .duo op (.inner c₁) (.inner c₂)
+  | .letIn s v b => withVar s v $ transform b
+  | .lam a b => withVar a (.var a) $ transform b
+  | .app .. => throw "TODO"
 
 end Circuit.Transformer
 
