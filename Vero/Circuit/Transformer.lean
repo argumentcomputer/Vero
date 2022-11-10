@@ -14,15 +14,18 @@ partial def transform : Syntax.Expr → CompileM Circuit
   | .var s => do match (← read).find? s with
     | some e => return .uno (.inner (← transform e))
     | none => return .uno (.outer s)
-  | .num n => return .uno (.const n)
-  | .binOp op e₁ e₂ => do
+  | .lit $ .num n => return .uno (.const n)
+  | .binOp (.add) e₁ e₂ => do
     let c₁ ← transform e₁
     let c₂ ← transform e₂
-    let op := match op with | .add => .add | .mul => .mul
-    return .duo op (.inner c₁) (.inner c₂)
+    return .duo .add (.inner c₁) (.inner c₂)
+  | .binOp (.mul) e₁ e₂ => do
+    let c₁ ← transform e₁
+    let c₂ ← transform e₂
+    return .duo .mul (.inner c₁) (.inner c₂)
   | .letIn s v b => withVar s v $ transform b
   | .lam a b => withVar a (.var a) $ transform b
-  | .app .. => throw "TODO"
+  | _ => throw "TODO"
 
 end Circuit.Transformer
 
