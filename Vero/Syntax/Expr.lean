@@ -20,17 +20,17 @@ inductive Lit
   | str  : String → Lit
   deriving Ord, Inhabited, Repr
 
-/-- Inductive describing the Vero AST -/
-inductive AST
-  | lit : Lit → AST
-  | var : String → AST
-  | unOp : UnOp → AST → AST
-  | binOp : BinOp → AST → AST → AST
-  | letIn : String → AST → AST → AST
-  | lam : String → AST → AST
-  | app : AST → AST → AST
-  | fork : AST → AST → AST → AST
-  | loop : AST → AST → AST
+/-- Inductive describing the Vero Expr -/
+inductive Expr
+  | lit : Lit → Expr
+  | var : String → Expr
+  | unOp : UnOp → Expr → Expr
+  | binOp : BinOp → Expr → Expr → Expr
+  | letIn : String → Expr → Expr → Expr
+  | lam : String → Expr → Expr
+  | app : Expr → Expr → Expr
+  | fork : Expr → Expr → Expr → Expr
+  | loop : Expr → Expr → Expr
   deriving Ord, Inhabited, Repr
 
 end Vero.Syntax

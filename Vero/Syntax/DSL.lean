@@ -1,10 +1,10 @@
 import Lean
-import Vero.Syntax.AST
+import Vero.Syntax.Expr
 
 /-!
 # Vero DSL
 
-This module defines the DSL to write Vero AST's inside a Lean file
+This module defines the DSL to write Vero Expr inside a Lean file
 -/
 
 namespace Vero.Syntax.DSL
@@ -19,7 +19,7 @@ scoped syntax "-" noWs num : lit
 scoped syntax char         : lit
 scoped syntax str          : lit
 
-def mkApp' (name : Name) (e : Expr) : Expr :=
+def mkApp' (name : Name) (e : Lean.Expr) : Lean.Expr :=
   mkApp (mkConst name) e
 
 partial def elabLit : TSyntax `lit → TermElabM Lean.Expr
@@ -48,24 +48,24 @@ def elabStr (i : TSyntax `ident) : Lean.Expr :=
   mkStrLit (i.getId.toString false)
 
 /-- TODO: binary and unary operators, if and while -/
-partial def elabAST : TSyntax `expr → TermElabM Lean.Expr
-  | `(expr| $i:ident) => mkAppM ``AST.var #[elabStr i]
-  | `(expr| $p:lit) => return ← mkAppM ``AST.lit #[← elabLit p]
+partial def elabExpr : TSyntax `expr → TermElabM Lean.Expr
+  | `(expr| $i:ident) => mkAppM ``Expr.var #[elabStr i]
+  | `(expr| $p:lit) => return ← mkAppM ``Expr.lit #[← elabLit p]
   | `(expr| $e₁ + $e₂) => do
-    mkAppM ``AST.binOp #[mkConst ``BinOp.add, ← elabAST e₁, ← elabAST e₂]
+    mkAppM ``Expr.binOp #[mkConst ``BinOp.add, ← elabExpr e₁, ← elabExpr e₂]
   | `(expr| $e₁ * $e₂) => do
-    mkAppM ``AST.binOp #[mkConst ``BinOp.mul, ← elabAST e₁, ← elabAST e₂]
+    mkAppM ``Expr.binOp #[mkConst ``BinOp.mul, ← elabExpr e₁, ← elabExpr e₂]
   | `(expr| $f:expr $[$as:expr]*) => do
-    as.foldlM (init := ← elabAST f) fun acc a => do
-      mkAppM ``AST.app #[acc, ← elabAST a]
+    as.foldlM (init := ← elabExpr f) fun acc a => do
+      mkAppM ``Expr.app #[acc, ← elabExpr a]
   | `(expr| $i:ident $is:ident* := $v:expr; $b:expr) => do
-    let lam ← is.foldrM (init := ← elabAST v) fun i acc => do
-      mkAppM ``AST.lam #[elabStr i, acc]
-    mkAppM ``AST.letIn #[elabStr i, lam, ← elabAST b]
-  | `(expr| ($e)) => elabAST e
+    let lam ← is.foldrM (init := ← elabExpr v) fun i acc => do
+      mkAppM ``Expr.lam #[elabStr i, acc]
+    mkAppM ``Expr.letIn #[elabStr i, lam, ← elabExpr b]
+  | `(expr| ($e)) => elabExpr e
   | _ => throwUnsupportedSyntax
 
 elab "⟦ " e:expr " ⟧" : term =>
-  elabAST e
+  elabExpr e
 
 end Vero.Syntax.DSL
