@@ -23,7 +23,6 @@ mutual
   | x => s!"{x.toString}"
 end
 
-
 instance : ToString Expr where 
   toString := Expr.toString
 
@@ -48,31 +47,34 @@ mutual
   | x => s!"{x.toString}"
 end
 
-
 instance : ToString AST where 
   toString := AST.toString
 
-def idx' (i: Nat) (nam: String)  : List String → Option Nat
+def idx' (i : Nat) (nam : String) : List String → Option Nat
 | n::ns => if n == nam then .some i else idx' (i+1) nam ns
 | [] => .none
 
 def idx := idx' 0
 
-def AST.freeVars' (ctx: List String) (fs : List String) : AST → List String
-| var n => if !ctx.contains n && !fs.contains n then n::fs else fs
-| lam n b => AST.freeVars' (n::ctx) fs b
-| app x y => AST.freeVars' ctx (AST.freeVars' ctx fs x) y
+def AST.freeVars :=
+  let rec aux (ctx : List String) (fs : List String) : AST → List String
+  | var n => if !ctx.contains n && !fs.contains n then n::fs else fs
+  | lam n b => aux (n::ctx) fs b
+  | app x y => aux ctx (aux ctx fs x) y
+  aux [] []
 
-def AST.freeVars := AST.freeVars' [] []
+def AST.toExpr (x : AST) : Except String Expr :=
+  let rec aux (ctx : List String) (fs: List String) : AST → Except String Expr
+  | var n => match idx n ctx with
+    | some i => return .var i
+    | none => match idx' ctx.length n fs with
+      | some i => return .var i
+      | none => throw s!"{n} not found in free variables {fs}"
+  | lam n b => return .lam (← aux (n::ctx) fs b)
+  | app x y => return .app (← aux ctx fs x) (← aux ctx fs y)
+  aux [] x.freeVars x
 
-def AST.toExpr' (ctx : List String) (fs: List String) : AST → Expr
-| var n => match idx n ctx with
-  | some i => .var i
-  | none => match idx' ctx.length n fs with | some i => .var i | none => panic! ""
-| lam n b => .lam (AST.toExpr' (n::ctx) fs b)
-| app x y => .app (AST.toExpr' ctx fs x) (AST.toExpr' ctx fs y)
-
-def AST.toExpr (x : AST) : Expr := AST.toExpr' [] x.freeVars x
+section DSL
 
 open Lean Elab Meta Term
 
@@ -99,6 +101,8 @@ partial def elabExpr : TSyntax `expr → TermElabM Lean.Expr
 elab "⟦ " e:expr " ⟧" : term =>
   elabExpr e
 
+end DSL
+
 def Expr.shift (dep: Nat) (inc: Nat) : Expr → Expr
 | .var n => if n > dep then .var (n + inc) else .var n
 | .lam b => .lam (shift (dep + 1) inc b)
@@ -112,19 +116,12 @@ def Expr.subst (dep: Nat) (arg: Expr) : Expr → Expr
 | .lam b => .lam (subst (dep+1) arg b)
 | .app x y => .app (subst dep arg x) (subst dep arg y)
 
-def Expr.reduce: Expr -> Expr
+def Expr.reduce: Expr → Expr
 | .app (.lam bod) arg => subst 0 arg bod
 | .app x y => .app (reduce x) y
 | x => x
 
--- #eval ⟦ a b c d e⟧.toString
--- #eval ⟦ (λx y. x y x) (λx y. x) (λx y. y)⟧.toExpr.toString
--- #eval ⟦ (λx y. x y x) (λx y. x) (λx y. y)⟧.toExpr.reduce.toString
+-- #eval ⟦a b c d e⟧.toString
+-- #eval toString ⟦(λx y. x y x) (λx y. x) (λx y. y)⟧.toExpr
 
 end Vero.Syntax.Core
-
-
-
-
-
-
