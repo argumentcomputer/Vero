@@ -78,37 +78,37 @@ section DSL
 
 open Lean Elab Meta Term
 
-declare_syntax_cat    expr
-scoped syntax ident : expr
-scoped syntax:30 expr (colGt expr:31)+ : expr
-scoped syntax "(" expr ")" : expr
-scoped syntax:49 "λ" ident* ". " expr:29 : expr
+declare_syntax_cat    core_ast
+scoped syntax ident : core_ast
+scoped syntax:30 core_ast (colGt core_ast:31)+ : core_ast
+scoped syntax "(" core_ast ")" : core_ast
+scoped syntax:49 "λ" ident* ". " core_ast:29 : core_ast
 
 def elabStr (i : TSyntax `ident) : Lean.Expr :=
   mkStrLit (i.getId.toString false)
 
-partial def elabExpr : TSyntax `expr → TermElabM Lean.Expr
-  | `(expr| $i:ident) => mkAppM ``Vero.Syntax.Core.AST.var #[elabStr i]
-  | `(expr| $f:expr $[$as:expr]*) => do
+partial def elabExpr : TSyntax `core_ast → TermElabM Lean.Expr
+  | `(core_ast| $i:ident) => mkAppM ``Vero.Syntax.Core.AST.var #[elabStr i]
+  | `(core_ast| $f:core_ast $[$as:core_ast]*) => do
     as.foldlM (init := ← elabExpr f) fun acc a => do
       mkAppM ``Vero.Syntax.Core.AST.app #[acc, ← elabExpr a]
-  | `(expr| λ $is:ident* . $b:expr) => do
+  | `(core_ast| λ $is:ident* . $b:core_ast) => do
     is.foldrM (init := ← elabExpr b) fun i acc => do
       mkAppM ``Vero.Syntax.Core.AST.lam #[elabStr i, acc]
-  | `(expr| ($e)) => elabExpr e
+  | `(core_ast| ($e)) => elabExpr e
   | _ => throwUnsupportedSyntax
 
-elab "⟦ " e:expr " ⟧" : term =>
+elab "⟦ " e:core_ast " ⟧" : term =>
   elabExpr e
 
 end DSL
 
-def Expr.shift (dep: Nat) (inc: Nat) : Expr → Expr
+def Expr.shift (dep : Nat) (inc : Nat) : Expr → Expr
 | .var n => if n > dep then .var (n + inc) else .var n
 | .lam b => .lam (shift (dep + 1) inc b)
 | .app x y => .app (shift dep inc x) (shift dep inc y)
 
-def Expr.subst (dep: Nat) (arg: Expr) : Expr → Expr
+def Expr.subst (dep : Nat) (arg : Expr) : Expr → Expr
 | .var n => match compare n dep with
   | .lt => .var n
   | .eq => shift 0 (dep - 1) arg
