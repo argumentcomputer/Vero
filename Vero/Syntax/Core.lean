@@ -32,6 +32,10 @@ inductive AST
   | app : AST → AST → AST
   deriving Ord, Inhabited, Repr
 
+def nApp (f a : AST) : Nat → AST
+  | 0 => a
+  | n + 1 => .app f (nApp f a n)
+
 class ToAST (α : Type _) where
   toAST : α → AST
 
@@ -118,36 +122,28 @@ elab "⟦ " e:core_ast " ⟧" : term =>
 end DSL
 
 def Expr.shift (dep : Nat) (inc : Nat) : Expr → Expr
-| .var n => if n >= dep then .var (n + inc) else .var n
-| .lam b => .lam (shift (dep + 1) inc b)
-| .app x y => .app (shift dep inc x) (shift dep inc y)
+  | .var n => if n >= dep then .var (n + inc) else .var n
+  | .lam b => .lam (shift (dep + 1) inc b)
+  | .app x y => .app (shift dep inc x) (shift dep inc y)
 
 def Expr.subst (dep : Nat) (arg : Expr) : Expr → Expr
-| .var n => match compare n dep with
-  | .lt => .var n
-  | .eq => shift 0 dep arg
-  | .gt => .var (n - 1)
-| .lam b => .lam (subst (dep+1) arg b)
-| .app x y => .app (subst dep arg x) (subst dep arg y)
+  | .var n => match compare n dep with
+    | .lt => .var n
+    | .eq => shift 0 dep arg
+    | .gt => .var (n - 1)
+  | .lam b => .lam (subst (dep + 1) arg b)
+  | .app x y => .app (subst dep arg x) (subst dep arg y)
 
-def Expr.reduce : Expr → Expr
-| .app fnc arg => match reduce fnc with
-  | .lam bod => subst 0 arg bod
-  | fnc' => .app fnc' arg
-| x => x
-
-partial def Expr.reduce' (e : Expr) : Expr :=
-  let e' := e.reduce
-  if e' == e then e'
-  else e'.reduce'
+partial def Expr.reduce : Expr → Expr
+  | .app fnc arg => match reduce fnc with
+    | .lam bod => reduce (subst 0 arg.reduce bod)
+    | fnc' => .app fnc' arg.reduce
+  | .lam b => .lam $ reduce b
+  | x => x
 
 def AST.ppReduce (x : AST) : String :=
   match x.toExpr with
-  | .ok expr => expr.reduce'.toString
+  | .ok expr => expr.reduce.toString
   | .error err => err
-
--- #eval ⟦a b c d e⟧.toString
--- #eval toString ⟦(λx y. x y x) (λx y. x) (λx y. y)⟧.toExpr
--- #eval ⟦(λx y. x y x) (λx y. x) (λx y. y)⟧.ppReduce
 
 end Vero.Syntax.Core
