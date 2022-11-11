@@ -27,15 +27,22 @@ instance : ToString Expr where
   toString := Expr.toString
 
 inductive AST
-  | var : String -> AST
-  | lam : String -> AST → AST
+  | var : String → AST
+  | lam : String → AST → AST
   | app : AST → AST → AST
   deriving Ord, Inhabited, Repr
+
+class ToAST (α : Type _) where
+  toAST : α → AST
+
+export ToAST (toAST)
+
+instance : ToAST AST := ⟨id⟩
 
 mutual 
   def AST.toString : AST → String
   | .var n => n
-  | .lam n b => s!"(λ{n} {b.lamsToString})"
+  | .lam n b => s!"(λ {n} {b.lamsToString})"
   | .app (.lam n b) y => s!"(λ {n} {b.lamsToString}) {y.toString}"
   | .app x y@(.app _ _) => s!"{x.toString} ({y.toString})"
   | .app x@(.app _ _) y => s!"{x.toString} {y.toString}"
@@ -96,7 +103,14 @@ partial def elabExpr : TSyntax `core_ast → TermElabM Lean.Expr
     is.foldrM (init := ← elabExpr b) fun i acc => do
       mkAppM ``Vero.Syntax.Core.AST.lam #[elabStr i, acc]
   | `(core_ast| ($e)) => elabExpr e
-  | _ => throwUnsupportedSyntax
+  | `(core_ast| $x) => do
+    if x.raw.isAntiquot then
+      let stx := x.raw.getAntiquotTerm
+      let e ← elabTerm stx none
+      let e ← whnf e
+      trace[debug] e
+      mkAppM ``toAST #[e]
+    else throwUnsupportedSyntax
 
 elab "⟦ " e:core_ast " ⟧" : term =>
   elabExpr e
@@ -122,9 +136,14 @@ def Expr.reduce : Expr → Expr
   | fnc' => .app fnc' arg
 | x => x
 
+partial def Expr.reduce' (e : Expr) : Expr :=
+  let e' := e.reduce
+  if e' == e then e'
+  else e'.reduce'
+
 def AST.ppReduce (x : AST) : String :=
   match x.toExpr with
-  | .ok expr => expr.reduce.toString
+  | .ok expr => expr.reduce'.toString
   | .error err => err
 
 -- #eval ⟦a b c d e⟧.toString
