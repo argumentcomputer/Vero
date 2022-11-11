@@ -116,12 +116,18 @@ def Expr.subst (dep: Nat) (arg: Expr) : Expr → Expr
 | .lam b => .lam (subst (dep+1) arg b)
 | .app x y => .app (subst dep arg x) (subst dep arg y)
 
-def Expr.reduce: Expr → Expr
+def Expr.reduce : Expr → Expr
 | .app (.lam bod) arg => subst 0 arg bod
 | .app x y => .app (reduce x) y
 | x => x
 
+def AST.ppReduce (x : AST) : String :=
+  match x.toExpr with
+  | .ok expr => expr.reduce.toString
+  | .error err => err
+
 -- #eval ⟦a b c d e⟧.toString
 -- #eval toString ⟦(λx y. x y x) (λx y. x) (λx y. y)⟧.toExpr
+-- #eval ⟦(λx y. x y x) (λx y. x) (λx y. y)⟧.ppReduce
 
 end Vero.Syntax.Core
