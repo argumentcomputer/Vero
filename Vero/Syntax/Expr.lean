@@ -1,49 +1,36 @@
-import Lean
+import Std.Data.RBMap
 
 namespace Vero.Syntax
 
-inductive BinOp
-  | add | mul
+/-- Inductive enumerating unary operators -/
+inductive UnOp
+  | neg | not
   deriving Ord, Repr
 
+/-- Inductive enumerating binary operators -/
+inductive BinOp
+  | add | mul | sub | div | eq | neq | lt | le | gt | ge | and | or
+  deriving Ord, Repr
+
+/-- Inductive enumerating the primitive types -/
+inductive Lit
+  | bool : Bool   → Lit
+  | int  : Int    → Lit
+  | char : Char   → Lit
+  | str  : String → Lit
+  deriving Ord, Inhabited, Repr
+
+/-- Inductive describing the Vero Expr -/
 inductive Expr
-  | num : Nat → Expr
+  | lit : Lit → Expr
   | var : String → Expr
+  | unOp : UnOp → Expr → Expr
   | binOp : BinOp → Expr → Expr → Expr
   | letIn : String → Expr → Expr → Expr
   | lam : String → Expr → Expr
   | app : Expr → Expr → Expr
+  | fork : Expr → Expr → Expr → Expr
+  | loop : Expr → Expr → Expr
   deriving Ord, Inhabited, Repr
-
-def Expr.getAddLeaves (acc : Lean.RBTree Expr compare := default) :
-    Expr → Option (Lean.RBTree Expr compare)
-  | e@(var _)
-  | e@(num _) => acc.insert e
-  | binOp .add e₁ e₂ => do e₂.getAddLeaves (← e₁.getAddLeaves acc)
-  | _ => none
-
-def Expr.getMulLeaves (acc : Lean.RBTree Expr compare := default) :
-    Expr → Option (Lean.RBTree Expr compare)
-  | e@(var _)
-  | e@(num _) => acc.insert e
-  | binOp .mul e₁ e₂ => do e₂.getMulLeaves (← e₁.getMulLeaves acc)
-  | _ => none
-
-def Expr.normalize : Expr → Expr
-  | e@(var _)
-  | e@(num _) => e
-  | e@(binOp .add e₁ e₂) => match e.getAddLeaves with
-    | some leaves => match leaves.toList with
-      | h :: t => t.foldl (init := h) fun acc e => .binOp .add acc e
-      | [] => unreachable!
-    | none => binOp .add e₁.normalize e₂.normalize
-  | e@(binOp .mul e₁ e₂) => match e.getMulLeaves with
-    | some leaves => match leaves.toList with
-      | h :: t => t.foldl (init := h) fun acc e => .binOp .mul acc e
-      | [] => unreachable!
-    | none => binOp .mul e₁.normalize e₂.normalize
-  | letIn s v b => letIn s v.normalize b.normalize
-  | lam s b => lam s b.normalize
-  | app f a => app f.normalize a.normalize
 
 end Vero.Syntax

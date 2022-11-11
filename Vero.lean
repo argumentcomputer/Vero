@@ -1,4 +1,3 @@
-import Vero.Circuit.Transformer
 import Vero.Syntax.DSL
 
 open Vero.Syntax.DSL in
@@ -7,4 +6,4 @@ open Vero.Syntax.DSL in
     z := 1;
     x + y + z;
   2 * (f 3 5)
-⟧.toCircuit
+⟧
