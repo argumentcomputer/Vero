@@ -104,21 +104,22 @@ elab "⟦ " e:core_ast " ⟧" : term =>
 end DSL
 
 def Expr.shift (dep : Nat) (inc : Nat) : Expr → Expr
-| .var n => if n > dep then .var (n + inc) else .var n
+| .var n => if n >= dep then .var (n + inc) else .var n
 | .lam b => .lam (shift (dep + 1) inc b)
 | .app x y => .app (shift dep inc x) (shift dep inc y)
 
 def Expr.subst (dep : Nat) (arg : Expr) : Expr → Expr
 | .var n => match compare n dep with
   | .lt => .var n
-  | .eq => shift 0 (dep - 1) arg
+  | .eq => shift 0 dep arg
   | .gt => .var (n - 1)
 | .lam b => .lam (subst (dep+1) arg b)
 | .app x y => .app (subst dep arg x) (subst dep arg y)
 
 def Expr.reduce : Expr → Expr
-| .app (.lam bod) arg => subst 0 arg bod
-| .app x y => .app (reduce x) y
+| .app fnc arg => match reduce fnc with
+  | .lam bod => subst 0 arg bod
+  | fnc' => .app fnc' arg
 | x => x
 
 def AST.ppReduce (x : AST) : String :=
