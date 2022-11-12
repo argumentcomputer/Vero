@@ -3,14 +3,13 @@ import Vero.Syntax.Core.Expr
 namespace Vero.Syntax.Core
 
 inductive ValType
-  | nat | bool
+  | nat | bool | any
   deriving Repr
 
 inductive Value
   | nat : Nat → Value
   | bool : Bool → Value
   | expr : Expr → Value
-  | error : String → Value
   deriving Repr
 
 namespace Expr
@@ -34,20 +33,20 @@ end Expr
 namespace AST
 
 /--
-Tries to reduce an AST to a certain type. Returns `.expr` or `.error` in case of
-failure.
+Tries to reduce an AST to a certain type. Returns `.expr` in case of failure.
 -/
-def reduce (x : AST) (to : ValType) : Value :=
+def reduceTo (x : AST) (type : ValType) : Except String Value :=
   match x.toExpr with
-  | .error err => .error err
+  | .error err => throw err
   | .ok expr =>
     let expr := expr.reduce
-    match to with
+    return match type with
     | .nat => match expr.toNat with
       | .ok n => .nat n
       | .error e => .expr e
     | .bool =>  match expr.toBool with
       | .ok b => .bool b
       | .error e => .expr e
+    | .any => .expr expr
 
 end Vero.Syntax.Core.AST
