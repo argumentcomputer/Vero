@@ -1,6 +1,6 @@
-import Vero.Eval.Expr
+import Vero.Reduce.Expr
 
-namespace Vero.Eval
+namespace Vero.Reduce
 
 inductive ValType
   | any
@@ -74,11 +74,11 @@ mutual
 
 end
 
-end Eval.Expr
+end Reduce.Expr
 
 namespace Syntax.Core.AST
 
-open Eval
+open Reduce
 
 /--
 Tries to reduce an AST to a certain type. Returns `.expr` in case of failure.
