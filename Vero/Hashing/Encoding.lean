@@ -1,4 +1,4 @@
-import Vero.Reduce.Hashing.Datatypes
+import Vero.Hashing.Datatypes
 import YatimaStdLib.Fin
 import Poseidon.ForLurk
 
