@@ -1,7 +1,6 @@
-import Vero.Syntax.Core.Expr
-import Vero.Syntax.Core.Data
+import Vero.Eval.Expr
 
-namespace Vero.Syntax.Core
+namespace Vero.Eval
 
 inductive ValType
   | any
@@ -9,7 +8,6 @@ inductive ValType
   | bool
   | pair : ValType → ValType → ValType
   | int
-  deriving Repr
 
 inductive Value
   | expr : Expr → Value
@@ -17,7 +15,7 @@ inductive Value
   | bool : Bool → Value
   | pair : Value → Value → Value
   | int  : Int → Value
-  deriving Repr, Inhabited
+  deriving Inhabited
 
 protected def Value.toString : Value → String
   | .expr e => toString e
@@ -76,9 +74,11 @@ mutual
 
 end
 
-end Expr
+end Eval.Expr
 
-namespace AST
+namespace Syntax.Core.AST
+
+open Eval
 
 /--
 Tries to reduce an AST to a certain type. Returns `.expr` in case of failure.

@@ -1,12 +1,12 @@
 import Vero.Syntax.Core.AST
 
-namespace Vero.Syntax.Core
+namespace Vero.Eval
 
 inductive Expr
   | var : Nat → Expr
   | lam : Expr → Expr
   | app : Expr → Expr → Expr
-  deriving BEq, Inhabited, Repr
+  deriving BEq, Inhabited
 
 namespace Expr
 
@@ -48,7 +48,9 @@ partial def reduce : Expr → Expr
   | .lam b => .lam $ reduce b
   | x => x
 
-end Expr
+end Eval.Expr
+
+namespace Syntax.Core
 
 def idxFrom (i : Nat) (nam : String) : List String → Option Nat
   | n::ns => if n == nam then .some i else idxFrom (i + 1) nam ns
@@ -56,6 +58,7 @@ def idxFrom (i : Nat) (nam : String) : List String → Option Nat
 
 def idx := idxFrom 0
 
+open Eval in
 def AST.toExpr (x : AST) : Except String Expr :=
   let rec aux (ctx fs : List String) : AST → Except String Expr
   | var n => match idx n ctx with
