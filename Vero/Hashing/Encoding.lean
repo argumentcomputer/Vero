@@ -1,6 +1,5 @@
 import Vero.Hashing.Datatypes
-import YatimaStdLib.Fin
-import Poseidon.ForLurk
+import Vero.Hashing.Utils
 
 namespace Vero.Hashing
 
@@ -16,12 +15,6 @@ def EncodeState.store (stt : EncodeState) : StoreF :=
   ⟨stt.exprs⟩
 
 abbrev EncodeM := StateM EncodeState
-
-def hashPtrPair (x y : Ptr) : F :=
-  .ofInt $ Poseidon.Lurk.hash x.tag.toF x.val y.tag.toF y.val
-
-def hashPtr (x : Ptr) : F :=
-  hashPtrPair x default -- use a simpler hashing function instead
 
 def addExprHash (ptr : Ptr) (expr : ExprF) : EncodeM Ptr :=
   modifyGet fun stt => (ptr, { stt with exprs := stt.exprs.insert ptr expr })
