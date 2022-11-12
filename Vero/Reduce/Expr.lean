@@ -6,7 +6,7 @@ inductive Expr
   | var : Nat → Expr
   | lam : Expr → Expr
   | app : Expr → Expr → Expr
-  deriving BEq, Inhabited
+  deriving Ord, Inhabited
 
 namespace Expr
 
