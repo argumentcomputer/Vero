@@ -4,7 +4,7 @@ import Vero.Hashing.Utils
 namespace Vero.Hashing
 
 structure EvalState where
-  store : Std.RBMap Ptr ExprF compare
+  store : StoreF
   cache : Std.RBMap Ptr Ptr   compare
 
 open Std (RBMap) in
@@ -28,7 +28,7 @@ def getAppFunArg (ptr : Ptr) : ReduceM (Ptr × Ptr) := do
 def addExprHash (ptr : Ptr) (expr : ExprF) : ReduceM Ptr :=
   modifyGet fun stt => (ptr, { stt with store := stt.store.insert ptr expr })
 
-partial def shift (dep inc : F) (ptr : Ptr) : ReduceM Ptr :=
+partial def shiftM (dep inc : F) (ptr : Ptr) : ReduceM Ptr :=
   match ptr.tag with
   | .var =>
     if ptr.val >= dep then
@@ -37,31 +37,31 @@ partial def shift (dep inc : F) (ptr : Ptr) : ReduceM Ptr :=
     else return ptr
   | .lam => do
     let b ← getLamBody ptr
-    let b ← shift dep.succ inc b
+    let b ← shiftM dep.succ inc b
     addExprHash ⟨.lam, hashPtr b⟩ (.lam b)
   | .app => do
     let (f, a) ← getAppFunArg ptr
-    let f ← shift dep inc f
-    let a ← shift dep inc a
+    let f ← shiftM dep inc f
+    let a ← shiftM dep inc a
     addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
 
-partial def subst (dep : F) (arg target : Ptr) : ReduceM Ptr :=
+partial def substM (dep : F) (arg target : Ptr) : ReduceM Ptr :=
   match target.tag with
   | .var => match compare target.val dep with
     | .lt => pure target
-    | .eq => shift F.zero dep arg
+    | .eq => shiftM F.zero dep arg
     | .gt => let n := target.val.pred; addExprHash ⟨.var, n⟩ (.var n)
   | .lam => do
     let b ← getLamBody target
-    let b ← subst dep.succ arg b
+    let b ← substM dep.succ arg b
     addExprHash ⟨.lam, hashPtr b⟩ (.lam b)
   | .app => do
     let (f, a) ← getAppFunArg target
-    let f ← subst dep arg f
-    let a ← subst dep arg a
+    let f ← substM dep arg f
+    let a ← substM dep arg a
     addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
 
-partial def reduce (ptr : Ptr) : ReduceM Ptr := do
+partial def reduceM (ptr : Ptr) : ReduceM Ptr := do
   match (← get).cache.find? ptr with
   | some ptr => pure ptr
   | none =>
@@ -69,18 +69,17 @@ partial def reduce (ptr : Ptr) : ReduceM Ptr := do
       | .var => pure ptr
       | .lam =>
         let b ← getLamBody ptr
-        let b ← reduce b
+        let b ← reduceM b
         addExprHash ⟨.lam, hashPtr b⟩ (.lam b)
       | .app =>
         let (f, a) ← getAppFunArg ptr
-        let f ← reduce f
+        let f ← reduceM f
         match f.tag with
-        | .lam => match ← getExpr f with
-          | .lam b => reduce $ ← subst F.zero (← reduce a) b
-          | x => throw s!"expected a lam pointer but got {x}"
-        | _ =>
-          let a ← reduce a
-          addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
+        | .lam => reduceM $ ← substM F.zero (← reduceM a) (← getLamBody f)
+        | _ => let a ← reduceM a; addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
     modifyGet fun stt => (ptr', { stt with cache := stt.cache.insert ptr ptr' })
+
+def reduce (ptr : Ptr) (store : StoreF) : Except String Ptr :=
+  (StateT.run (reduceM ptr) ⟨store, default⟩).1
 
 end Vero.Hashing

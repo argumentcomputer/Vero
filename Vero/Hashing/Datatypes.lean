@@ -56,12 +56,10 @@ def ExprF.toString : ExprF → String
 
 instance : ToString ExprF := ⟨ExprF.toString⟩
 
-structure StoreF where
-  exprs : Std.RBMap Ptr ExprF compare
-  deriving Inhabited
+abbrev StoreF := Std.RBMap Ptr ExprF compare
 
 def StoreF.toString (s : StoreF) : String :=
-  let body := ",\n".intercalate $ s.exprs.toList.map fun (k, v) => s!"  {k}: {v}"
+  let body := ",\n".intercalate $ s.toList.map fun (k, v) => s!"  {k}: {v}"
   "exprs: {\n" ++ body ++ "\n}"
 
 instance : ToString StoreF := ⟨StoreF.toString⟩

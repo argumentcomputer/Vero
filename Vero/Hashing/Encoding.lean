@@ -1,4 +1,3 @@
-import Vero.Hashing.Datatypes
 import Vero.Hashing.Utils
 
 namespace Vero.Hashing
@@ -7,17 +6,14 @@ open Reduce (Expr)
 
 open Std (RBMap) in
 structure EncodeState where
-  exprs : RBMap Ptr  ExprF compare
+  store : StoreF
   cache : RBMap Expr Ptr   compare
   deriving Inhabited
-
-def EncodeState.store (stt : EncodeState) : StoreF :=
-  ⟨stt.exprs⟩
 
 abbrev EncodeM := StateM EncodeState
 
 def addExprHash (ptr : Ptr) (expr : ExprF) : EncodeM Ptr :=
-  modifyGet fun stt => (ptr, { stt with exprs := stt.exprs.insert ptr expr })
+  modifyGet fun stt => (ptr, { stt with store := stt.store.insert ptr expr })
 
 def encodeExpr (e : Expr) : EncodeM Ptr := do
   match (← get).cache.find? e with
