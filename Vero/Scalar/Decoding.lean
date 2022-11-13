@@ -1,9 +1,9 @@
-import Vero.Hashing.Datatypes
-import Vero.Reduce.Expr
+import Vero.Scalar.Datatypes
+import Vero.Reduction.Expr
 
-namespace Vero.Hashing
+namespace Vero.Scalar
 
-open Vero.Reduce (Expr)
+open Vero.Reduction (Expr)
 
 structure DecodeContext where
   store : StoreF
@@ -34,4 +34,4 @@ partial def decodeExpr (ptr : Ptr) : DecodeM Expr := do
 def decode (ptr : Ptr) (store : StoreF) : Except String Expr :=
   (StateT.run (ReaderT.run (decodeExpr ptr) ⟨store, default⟩) default).1
 
-end Vero.Hashing
+end Vero.Scalar

@@ -1,6 +1,6 @@
 import Vero.Syntax.Core.AST
 
-namespace Vero.Reduce
+namespace Vero.Reduction
 
 inductive Expr
   | var : Nat → Expr
@@ -28,7 +28,7 @@ end
 instance : ToString Expr where 
   toString := Expr.toString
 
-end Reduce.Expr
+end Reduction.Expr
 
 namespace Syntax.Core
 
@@ -38,7 +38,7 @@ def idxFrom (i : Nat) (nam : String) : List String → Option Nat
 
 def idx := idxFrom 0
 
-open Reduce in
+open Reduction in
 def AST.toExpr (x : AST) : Except String Expr :=
   let rec aux (ctx fs : List String) : AST → Except String Expr
   | var n => match idx n ctx with

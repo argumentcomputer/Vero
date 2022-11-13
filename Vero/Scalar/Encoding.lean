@@ -1,8 +1,8 @@
-import Vero.Hashing.Utils
+import Vero.Scalar.Utils
 
-namespace Vero.Hashing
+namespace Vero.Scalar
 
-open Reduce (Expr)
+open Reduction (Expr)
 
 open Std (RBMap) in
 structure EncodeState where
@@ -32,11 +32,11 @@ def encodeExpr (e : Expr) : EncodeM Ptr := do
     modifyGet fun stt =>
       (ptr, { stt with cache := stt.cache.insert e ptr })
 
-end Hashing
+end Scalar
 
-namespace Reduce.Expr
+namespace Reduction.Expr
 
-open Hashing
+open Scalar
 
 def encode (e : Expr) : Ptr × StoreF :=
   match StateT.run (encodeExpr e) default with
@@ -45,4 +45,4 @@ def encode (e : Expr) : Ptr × StoreF :=
 def encode' (e : Expr) (stt : EncodeState := default) : Ptr × EncodeState :=
   StateT.run (encodeExpr e) stt
 
-end Vero.Reduce.Expr
+end Vero.Reduction.Expr

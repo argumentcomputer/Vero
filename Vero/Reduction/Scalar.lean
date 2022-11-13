@@ -1,7 +1,7 @@
-import Vero.Hashing.Datatypes
-import Vero.Hashing.Utils
+import Vero.Scalar.Datatypes
+import Vero.Scalar.Utils
 
-namespace Vero.Hashing
+namespace Vero.Scalar
 
 structure EvalState where
   store : StoreF
@@ -85,4 +85,4 @@ def reduce (ptr : Ptr) (store : StoreF) : Except String (Ptr × StoreF) :=
   | (.error err, _) => .error err
   | (.ok ptr, ⟨store, _⟩) => .ok (ptr, store)
 
-end Vero.Hashing
+end Vero.Scalar

@@ -1,6 +1,6 @@
-import Vero.Reduce.Expr
+import Vero.Reduction.Expr
 
-namespace Vero.Reduce
+namespace Vero.Reduction
 
 namespace Expr
 
@@ -68,6 +68,10 @@ def toBool : Expr → Except Expr Bool
 
 mutual
 
+  /--
+  Tries to convert an Expr to a certain type. Results in `.expr` in case of
+  failure.
+  -/
   partial def ofType (e : Expr) : ValType → Value
     | .any => .expr e
     | .nat => match e.toNat with
@@ -100,23 +104,4 @@ mutual
 
 end
 
-end Reduce.Expr
-
-namespace Syntax.Core.AST
-
-open Reduce
-
-/--
-Tries to reduce an AST to a certain type. Returns `.expr` in case of failure.
--/
-def reduceTo (x : AST) (type : ValType) : Except String Value :=
-  match x.toExpr with
-  | .error err => throw err
-  | .ok expr => return expr.reduce.ofType type
-
-def reduceToPP (x : AST) (type : ValType) : String :=
-  match x.reduceTo type with
-  | .error err => err
-  | .ok v => v.toString
-
-end Vero.Syntax.Core.AST
+end Vero.Reduction.Expr

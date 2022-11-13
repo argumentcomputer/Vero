@@ -1,14 +1,14 @@
 import LSpec
 import Vero.Syntax.Core.Data
-import Vero.Hashing.Encoding
-import Vero.Hashing.Decoding
-import Vero.Reduce.DirectReduction
-import Vero.Reduce.ScalarReduction
+import Vero.Scalar.Encoding
+import Vero.Scalar.Decoding
+import Vero.Reduction.Direct
+import Vero.Reduction.Scalar
 
 open Vero
 
 open Syntax.Core.DSL Syntax.Core.AST in
-def cases : List $ Syntax.Core.AST × Reduce.ValType × Reduce.Value := [
+def cases : List $ Syntax.Core.AST × Reduction.ValType × Reduction.Value := [
   (⟦$(NAT 0)⟧, .nat, .nat 0),
   (⟦$NAT.SUCC $(NAT 5)⟧, .nat, .nat 6),
   (⟦$NAT.ADD $(NAT 1) $(NAT 2)⟧, .nat, .nat 3),
@@ -24,6 +24,6 @@ def main := lspecIO $
       let got := red.ofType type
       test s!"Expected {expec} equals {got}" (expec == got) ++
         let (ptr, store) := expr.encode
-        withExceptOk "Scalar reduction succeeds" (Hashing.reduce ptr store) fun (ptr, store) =>
-          withExceptOk "Decoding succeeds" (Hashing.decode ptr store) fun red' =>
+        withExceptOk "Scalar reduction succeeds" (Scalar.reduce ptr store) fun (ptr, store) =>
+          withExceptOk "Decoding succeeds" (Scalar.decode ptr store) fun red' =>
             test s!"Directly reduced {red} equals {red'}" (red == red')

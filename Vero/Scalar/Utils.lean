@@ -1,8 +1,8 @@
-import Vero.Hashing.Datatypes
+import Vero.Scalar.Datatypes
 import YatimaStdLib.Fin
 import Poseidon.ForLurk
 
-namespace Vero.Hashing
+namespace Vero.Scalar
 
 def hashPtrPair (x y : Ptr) : F :=
   .ofInt $ Poseidon.Lurk.hash x.tag.toF x.val y.tag.toF y.val
@@ -10,4 +10,4 @@ def hashPtrPair (x y : Ptr) : F :=
 def hashPtr (x : Ptr) : F :=
   hashPtrPair x default -- use a simpler hashing function instead
 
-end Vero.Hashing
+end Vero.Scalar

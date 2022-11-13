@@ -1,8 +1,8 @@
-import Vero.Reduce.Expr
+import Vero.Reduction.Expr
 import Std.Data.RBMap
 import YatimaStdLib.Nat
 
-namespace Vero.Hashing
+namespace Vero.Scalar
 
 inductive Tag
   | var | lam | app
@@ -64,4 +64,4 @@ def StoreF.toString (s : StoreF) : String :=
 
 instance : ToString StoreF := ⟨StoreF.toString⟩
 
-end Vero.Hashing
+end Vero.Scalar
