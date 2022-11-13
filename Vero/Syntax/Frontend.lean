@@ -32,7 +32,7 @@ inductive AST
   | loop : AST → AST → AST
   deriving Ord, Inhabited, Repr
 
-section DSL
+namespace DSL
 
 open Lean Elab Meta Term
 

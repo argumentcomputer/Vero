@@ -1,6 +1,6 @@
-import Vero.Syntax.DSL
+import Vero.Syntax.Frontend
 
-open Vero.Syntax.DSL in
+open Vero.Syntax.Frontend.DSL in
 #eval ⟦
   f x y :=
     z := 1;
