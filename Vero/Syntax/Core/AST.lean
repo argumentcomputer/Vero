@@ -44,7 +44,7 @@ def AST.freeVars :=
   | app x y => aux ctx (aux ctx fs x) y
   aux [] []
 
-section DSL
+namespace DSL
 
 open Lean Elab Meta Term
 

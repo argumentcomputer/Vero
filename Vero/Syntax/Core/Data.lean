@@ -2,16 +2,18 @@ import Vero.Syntax.Core.AST
 
 namespace Vero.Syntax.Core.AST
 
+open DSL
+
 def NAT (n : Nat) : AST :=
   let app := nApp ⟦f⟧ ⟦x⟧ n
   ⟦λ f x. $app⟧
 
 namespace NAT
 
-def ADD  := ⟦λ m n f x. m f (n f x)⟧
-def MUL  := ⟦λ m n f. m (n f)⟧
 def SUCC := ⟦λ n f x. f (n f x)⟧
 def PRED := ⟦λ n f x. n (λ g h. h (g f)) (λ u. x) (λ u. u)⟧
+def ADD  := ⟦λ m n f x. m f (n f x)⟧
+def MUL  := ⟦λ m n f. m (n f)⟧
 def SUB  := ⟦λ m n. n $PRED m⟧
 def DIV : AST := sorry
 -- def DIV  := ⟦λ n. ((λ f. (λ x. x x) (λ x. f (x x)))

@@ -1,6 +1,30 @@
-import Vero.Reduce.Expr
+import Vero.Reduction.Expr
 
-namespace Vero.Reduce
+namespace Vero.Reduction
+
+namespace Expr
+
+def shift (dep inc : Nat) : Expr → Expr
+  | .var n => if n >= dep then .var (n + inc) else .var n
+  | .lam b => .lam (shift (dep + 1) inc b)
+  | .app x y => .app (shift dep inc x) (shift dep inc y)
+
+def subst (dep : Nat) (arg : Expr) : Expr → Expr
+  | .var n => match compare n dep with
+    | .lt => .var n
+    | .eq => shift 0 dep arg
+    | .gt => .var (n - 1)
+  | .lam b => .lam (subst (dep + 1) arg b)
+  | .app x y => .app (subst dep arg x) (subst dep arg y)
+
+partial def reduce : Expr → Expr
+  | .app fnc arg => match reduce fnc with
+    | .lam bod => reduce (subst 0 arg.reduce bod)
+    | fnc' => .app fnc' arg.reduce
+  | .lam b => .lam $ reduce b
+  | x => x
+
+end Expr
 
 inductive ValType
   | any
@@ -15,7 +39,7 @@ inductive Value
   | bool : Bool → Value
   | pair : Value → Value → Value
   | int  : Int → Value
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 protected def Value.toString : Value → String
   | .expr e => toString e
@@ -23,6 +47,8 @@ protected def Value.toString : Value → String
   | .bool b => toString b
   | .pair f s => s!"({f.toString} . {s.toString})"
   | .int  i => toString i
+
+instance : ToString Value := ⟨Value.toString⟩
 
 namespace Expr
 
@@ -42,6 +68,10 @@ def toBool : Expr → Except Expr Bool
 
 mutual
 
+  /--
+  Tries to convert an Expr to a certain type. Results in `.expr` in case of
+  failure.
+  -/
   partial def ofType (e : Expr) : ValType → Value
     | .any => .expr e
     | .nat => match e.toNat with
@@ -74,23 +104,4 @@ mutual
 
 end
 
-end Reduce.Expr
-
-namespace Syntax.Core.AST
-
-open Reduce
-
-/--
-Tries to reduce an AST to a certain type. Returns `.expr` in case of failure.
--/
-def reduceTo (x : AST) (type : ValType) : Except String Value :=
-  match x.toExpr with
-  | .error err => throw err
-  | .ok expr => return expr.reduce.ofType type
-
-def reduceToPP (x : AST) (type : ValType) : String :=
-  match x.reduceTo type with
-  | .error err => err
-  | .ok v => v.toString
-
-end Vero.Syntax.Core.AST
+end Vero.Reduction.Expr
