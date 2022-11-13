@@ -5,9 +5,8 @@ namespace Vero.Hashing
 
 structure EvalState where
   store : StoreF
-  cache : Std.RBMap Ptr Ptr   compare
+  cache : Std.RBMap Ptr Ptr compare
 
-open Std (RBMap) in
 abbrev ReduceM := ExceptT String $ StateM EvalState
 
 def getExpr (ptr : Ptr) : ReduceM ExprF := do
@@ -25,8 +24,10 @@ def getAppFunArg (ptr : Ptr) : ReduceM (Ptr × Ptr) := do
   | .app f a => pure (f, a)
   | x => throw s!"expected an app expression but got {x}"
 
-def addExprHash (ptr : Ptr) (expr : ExprF) : ReduceM Ptr :=
+def ReduceM.addExprHash (ptr : Ptr) (expr : ExprF) : ReduceM Ptr :=
   modifyGet fun stt => (ptr, { stt with store := stt.store.insert ptr expr })
+
+open ReduceM
 
 partial def shiftM (dep inc : F) (ptr : Ptr) : ReduceM Ptr :=
   match ptr.tag with
@@ -79,7 +80,9 @@ partial def reduceM (ptr : Ptr) : ReduceM Ptr := do
         | _ => let a ← reduceM a; addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
     modifyGet fun stt => (ptr', { stt with cache := stt.cache.insert ptr ptr' })
 
-def reduce (ptr : Ptr) (store : StoreF) : Except String Ptr :=
-  (StateT.run (reduceM ptr) ⟨store, default⟩).1
+def reduce (ptr : Ptr) (store : StoreF) : Except String (Ptr × StoreF) :=
+  match StateT.run (reduceM ptr) ⟨store, default⟩ with
+  | (.error err, _) => .error err
+  | (.ok ptr, ⟨store, _⟩) => .ok (ptr, store)
 
 end Vero.Hashing

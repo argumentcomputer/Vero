@@ -1,6 +1,6 @@
 {"version": 2,
  "packages":
- [{"url": "https://github.com/yatima-inc/LSpec",
+ [{"url": "https://github.com/yatima-inc/LSpec.git",
    "rev": "02e423d02d2ba1b76bed3cf6459a5c2d7a13afb8",
    "name": "LSpec",
    "inputRev": "02e423d02d2ba1b76bed3cf6459a5c2d7a13afb8"},

@@ -39,7 +39,7 @@ inductive Value
   | bool : Bool → Value
   | pair : Value → Value → Value
   | int  : Int → Value
-  deriving Inhabited
+  deriving Inhabited, BEq
 
 protected def Value.toString : Value → String
   | .expr e => toString e
@@ -47,6 +47,8 @@ protected def Value.toString : Value → String
   | .bool b => toString b
   | .pair f s => s!"({f.toString} . {s.toString})"
   | .int  i => toString i
+
+instance : ToString Value := ⟨Value.toString⟩
 
 namespace Expr
 

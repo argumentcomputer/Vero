@@ -7,14 +7,15 @@ open Reduce (Expr)
 open Std (RBMap) in
 structure EncodeState where
   store : StoreF
-  cache : RBMap Expr Ptr   compare
+  cache : RBMap Expr Ptr compare
   deriving Inhabited
 
 abbrev EncodeM := StateM EncodeState
 
-def addExprHash (ptr : Ptr) (expr : ExprF) : EncodeM Ptr :=
+def EncodeM.addExprHash (ptr : Ptr) (expr : ExprF) : EncodeM Ptr :=
   modifyGet fun stt => (ptr, { stt with store := stt.store.insert ptr expr })
 
+open EncodeM in
 def encodeExpr (e : Expr) : EncodeM Ptr := do
   match (← get).cache.find? e with
   | some ptr => pure ptr
