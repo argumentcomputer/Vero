@@ -24,6 +24,10 @@ def F.asHex (n : F) : String :=
 
 instance : Inhabited F := ⟨.ofNat 0⟩
 
+def F.zero : F := default
+def F.succ (f : F) : F := f + .ofNat 1
+def F.pred (f : F) : F := f - .ofNat 1
+
 def Tag.toF : Tag → F
   | var => .ofNat 0
   | lam => .ofNat 1
