@@ -26,4 +26,4 @@ require std from git
 require Poseidon from git
   "https://github.com/yatima-inc/Poseidon.lean" @ "44fac19cebc3cb11e61526e824913a7ed842d435"
 
-lean_exe Tests.Reduce
+lean_exe Tests.Reduction

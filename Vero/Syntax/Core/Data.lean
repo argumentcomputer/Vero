@@ -15,7 +15,6 @@ def PRED := ⟦λ n f x. n (λ g h. h (g f)) (λ u. x) (λ u. u)⟧
 def ADD  := ⟦λ m n f x. m f (n f x)⟧
 def MUL  := ⟦λ m n f. m (n f)⟧
 def SUB  := ⟦λ m n. n $PRED m⟧
-def DIV : AST := sorry
 -- def DIV  := ⟦λ n. ((λ f. (λ x. x x) (λ x. f (x x)))
 --                     (λ c. λ n. λ m. λ f. λ x.
 --                       (λ d. (λ n. n (λ x. (λ a. λ b. b)) (λ a.λ b. a)) d ((λ f.λ x. x) f x) (f (c d m f x)))
@@ -63,10 +62,10 @@ open PAIR BOOL FLOW
 
 def NEG := ⟦λ a. $PROD ($NOT ($FST a)) ($SND a)⟧
 def MUL := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.MUL ($SND a) ($SND b))⟧
-def DIV := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.DIV ($SND a) ($SND b))⟧
+-- def DIV := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.DIV ($SND a) ($SND b))⟧
 
-def ADD : AST := sorry
-def SUB := ⟦λ a b. $ADD a ($NEG b)⟧
+-- def ADD : AST := sorry
+-- def SUB := ⟦λ a b. $ADD a ($NEG b)⟧
 
 end INT
 
