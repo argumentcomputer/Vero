@@ -80,7 +80,7 @@ def AST.getVarTyp (s : String) : AST → Option Typ
     | (some a, none, none) => some a
     | (none, none, none) => none
 
-def AST.inferTyp (ctx : Std.RBMap String Typ compare) :
+def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
     AST → Except String (Option Typ)
   | .lit l => match l with
     | .nat  _ => return some .nat
@@ -183,6 +183,7 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare) :
       | some bTyp => return some $ .pi sTyp bTyp
       | none => return none
     | (none, none, none) => return none
+    | (some pi@(.pi ..), none, none) => return some pi
     | (some x, _, _) => throw s!"{x} is not a pi type"
   | .app typ? f a => do match (typ?, ← f.inferTyp ctx, ← a.inferTyp ctx) with
     | (some typ, some $ .pi inTyp outTyp, some aTyp) =>
@@ -204,3 +205,7 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare) :
     | _ => return none
 
 end Vero.Frontend
+
+open Vero.Frontend
+
+#eval (AST.lam (some $ .pi .int .nat) "a" (none) (.lit (.nat 4))).inferTyp
