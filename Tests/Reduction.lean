@@ -8,7 +8,7 @@ import Vero.Reduction.Scalar
 open Vero
 
 open Core.DSL Core.AST Core.Data in
-def cases : List $ Core.AST × Reduction.ValType × Reduction.Value := [
+def cases : List $ Core.AST × Typ × Reduction.Value := [
   (⟦$(NAT 0)⟧, .nat, .nat 0),
   (⟦$NAT.SUCC $(NAT 5)⟧, .nat, .nat 6),
   (⟦$NAT.ADD $(NAT 1) $(NAT 2)⟧, .nat, .nat 3),

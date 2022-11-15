@@ -7,8 +7,15 @@ def simpleBool := ⟦
   ff & tt
 ⟧
 
-def pairs : List $ Frontend.AST × (Option Frontend.Typ) := [
-  (simpleBool, some .bool)
+def simpleLam := ⟦
+  f : nat -> int -> nat := n (y : int) => n : nat;
+  f
+⟧
+
+def pairs : List $ Frontend.AST × (Option Typ) := [
+  (simpleBool, some .bool),
+  (simpleLam, .some $ .pi .nat (.pi .int .nat))
+  -- TODO : add more tests
 ]
 
 open LSpec in

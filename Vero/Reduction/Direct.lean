@@ -1,3 +1,4 @@
+import Vero.Common.Typ
 import Vero.Reduction.Expr
 
 namespace Vero.Reduction
@@ -25,13 +26,6 @@ partial def reduce : Expr → Expr
   | x => x
 
 end Expr
-
-inductive ValType
-  | any
-  | nat
-  | bool
-  | pair : ValType → ValType → ValType
-  | int
 
 inductive Value
   | expr : Expr → Value
@@ -72,8 +66,8 @@ mutual
   Tries to convert an Expr to a certain type. Results in `.expr` in case of
   failure.
   -/
-  partial def ofType (e : Expr) : ValType → Value
-    | .any => .expr e
+  partial def ofType (e : Expr) : Typ → Value
+    | .pi .. => .expr e -- TODO
     | .nat => match e.toNat with
       | .ok n => .nat n
       | .error e => .expr e
@@ -87,11 +81,8 @@ mutual
       | .ok i => .int i
       | .error e => .expr e
 
-  partial def toPair (a b : ValType) : Expr → Except Expr (Value × Value)
-    | lam (app (app (var 0) x) (y)) =>
-      let t₁ : Value := x.ofType a
-      let t₂ : Value := y.ofType b
-      return (t₁, t₂)
+  partial def toPair (a b : Typ) : Expr → Except Expr (Value × Value)
+    | lam (app (app (var 0) x) (y)) => return (x.ofType a, y.ofType b)
     | x => throw x
   
   partial def toInt (e : Expr) : Except Expr Int :=
