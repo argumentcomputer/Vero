@@ -118,6 +118,7 @@ def elabBinOp (a b : Expr) : BinOp → TermElabM Expr
   | .or  => mkAppM ``AST.binOp #[mkConst ``BinOp.or , a, b]
 
 partial def elabAST : TSyntax `ast → TermElabM Expr
+  | `(ast| ($v:var))
   | `(ast| $v:var) => do mkAppM ``AST.var #[← elabVar v]
   | `(ast| $p:lit) => return ← mkAppM ``AST.lit #[← elabLit p]
   | `(ast| - $x) => do mkAppM ``AST.unOp #[mkConst ``UnOp.neg , ← elabAST x]
