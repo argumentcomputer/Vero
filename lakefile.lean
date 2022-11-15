@@ -15,16 +15,16 @@ lean_exe vero {
 }
 
 require LSpec from git
-  "https://github.com/yatima-inc/LSpec.git" @ "02e423d02d2ba1b76bed3cf6459a5c2d7a13afb8"
+  "https://github.com/yatima-inc/LSpec.git" @ "89798a6cb76b2b29469ff752af2fd8543b3a5515"
 
 require YatimaStdLib from git
-  "https://github.com/yatima-inc/YatimaStdLib.lean" @ "2b914196a8c67838e63c1c1e44eaf339b8a50eb7"
+  "https://github.com/yatima-inc/YatimaStdLib.lean" @ "adaa6c339d116c5fb67d924f0952c63603f2859b"
 
 require std from git
-  "https://github.com/leanprover/std4/" @ "22327ae0520d4e499503429565f79f179f83437a"
+  "https://github.com/leanprover/std4/" @ "d83e97c7843deb1cf4a6b2a2c72aaf2ece0b4ce8"
 
 require Poseidon from git
-  "https://github.com/yatima-inc/Poseidon.lean" @ "44fac19cebc3cb11e61526e824913a7ed842d435"
+  "https://github.com/yatima-inc/Poseidon.lean" @ "dcfee71e6753c9239ab922d6fdcca0c1999c2ae4"
 
 lean_exe Tests.Reduction
 lean_exe Tests.TypeInference
