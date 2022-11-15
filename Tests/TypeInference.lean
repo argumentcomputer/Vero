@@ -18,9 +18,9 @@ def simpleLam' := ⟦
 ⟧
 
 def pairs : List $ Frontend.AST × (Option Typ) := [
-  (simpleBool, some .bool),
-  (simpleLam,  some $ .pi .nat (.pi .int .nat)),
-  (simpleLam', some $ .pi .nat (.pi .nat .nat))
+  (simpleBool, some ⟪bool⟫),
+  (simpleLam,  some ⟪nat -> int -> nat⟫),
+  (simpleLam', some ⟪nat -> nat -> nat⟫)
   -- TODO : add more tests
 ]
 

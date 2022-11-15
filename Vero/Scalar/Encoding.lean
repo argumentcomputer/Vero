@@ -1,8 +1,9 @@
 import Vero.Scalar.Utils
+import Vero.Common.Expr
 
 namespace Vero.Scalar
 
-open Reduction (Expr)
+open Expr
 
 open Std (RBMap) in
 structure EncodeState where
@@ -34,7 +35,7 @@ def encodeExpr (e : Expr) : EncodeM Ptr := do
 
 end Scalar
 
-namespace Reduction.Expr
+namespace Expr
 
 open Scalar
 
@@ -45,4 +46,4 @@ def encode (e : Expr) : Ptr × StoreF :=
 def encode' (e : Expr) (stt : EncodeState := default) : Ptr × EncodeState :=
   StateT.run (encodeExpr e) stt
 
-end Vero.Reduction.Expr
+end Vero.Expr

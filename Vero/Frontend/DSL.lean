@@ -25,27 +25,30 @@ def elabLit : TSyntax `lit → TermElabM Lean.Expr
     | (n + 1) => #[mkApp' ``Int.negSucc (mkNatLit n)]
   | _ => throwUnsupportedSyntax
 
-declare_syntax_cat               type
-scoped syntax "nat"            : type
-scoped syntax "int"            : type
-scoped syntax "bool"           : type
-scoped syntax type " . "  type : type
-scoped syntax type " -> " type : type
-scoped syntax "(" type ")"     : type
+declare_syntax_cat             typ
+scoped syntax "nat"          : typ
+scoped syntax "int"          : typ
+scoped syntax "bool"         : typ
+scoped syntax typ " . "  typ : typ
+scoped syntax typ " -> " typ : typ
+scoped syntax "(" typ ")"    : typ
 
-partial def elabType : TSyntax `type → TermElabM Lean.Expr
-  | `(type| nat)  => mkConst ``Typ.nat
-  | `(type| int)  => mkConst ``Typ.int
-  | `(type| bool) => mkConst ``Typ.bool
-  | `(type| $t₁:type . $t₂:type) => do
-    mkAppM ``Typ.pair #[← elabType t₁, ← elabType t₂]
-  | `(type| $t₁:type -> $t₂:type) => do
-    mkAppM ``Typ.pi #[← elabType t₁, ← elabType t₂]
-  | `(type| ($t:type)) => elabType t
+partial def elabTyp : TSyntax `typ → TermElabM Lean.Expr
+  | `(typ| nat)  => mkConst ``Typ.nat
+  | `(typ| int)  => mkConst ``Typ.int
+  | `(typ| bool) => mkConst ``Typ.bool
+  | `(typ| $t₁:typ . $t₂:typ) => do
+    mkAppM ``Typ.pair #[← elabTyp t₁, ← elabTyp t₂]
+  | `(typ| $t₁:typ -> $t₂:typ) => do
+    mkAppM ``Typ.pi #[← elabTyp t₁, ← elabTyp t₂]
+  | `(typ| ($t:typ)) => elabTyp t
   | _ => throwUnsupportedSyntax
 
+elab "⟪" x:typ "⟫" : term =>
+  elabTyp x
+
 declare_syntax_cat var
-scoped syntax ident (":" type)? : var
+scoped syntax ident (":" typ)? : var
 scoped syntax "(" var ")" : var
 
 def mkVarNone (n : String) : Var :=
@@ -59,8 +62,8 @@ def elabStr (i : TSyntax `ident) : Expr :=
 
 partial def elabVar : TSyntax `var → TermElabM Lean.Expr
   | `(var| $i:ident) => return mkApp' ``mkVarNone (elabStr i)
-  | `(var| $i:ident : $t:type) => do
-    mkAppM ``mkVarSome #[elabStr i, ← elabType t]
+  | `(var| $i:ident : $t:typ) => do
+    mkAppM ``mkVarSome #[elabStr i, ← elabTyp t]
   | `(var| ($v:var)) => elabVar v
   | _ => throwUnsupportedSyntax
 
@@ -151,7 +154,7 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| ($x:ast)) => elabAST x
   | _ => throwUnsupportedSyntax
 
-elab "⟦ " x:ast " ⟧" : term =>
+elab "⟦" x:ast "⟧" : term =>
   elabAST x
 
 end Vero.Frontend.DSL

@@ -1,9 +1,9 @@
 import Vero.Scalar.Datatypes
-import Vero.Reduction.Expr
+import Vero.Common.Expr
 
 namespace Vero.Scalar
 
-open Vero.Reduction (Expr)
+open Expr
 
 structure DecodeContext where
   store : StoreF

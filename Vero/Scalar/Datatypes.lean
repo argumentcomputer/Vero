@@ -1,4 +1,3 @@
-import Vero.Reduction.Expr
 import Std.Data.RBMap
 import YatimaStdLib.Nat
 
