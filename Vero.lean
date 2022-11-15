@@ -5,5 +5,5 @@ open Vero.Frontend.DSL in
   f x y :=
     z := 1;
     x + y + z;
-  2 * (f 3 5)
+  2 * (f @ 3, 5)
 ⟧

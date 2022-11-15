@@ -91,7 +91,7 @@ scoped syntax withPosition(
 scoped syntax withPosition(var+ colGt " => " colGt ast) : ast
 
 -- application
-scoped syntax:49 ast (colGt ast:50)+ : ast
+scoped syntax ast "@" ast,+ : ast
 
 -- forks
 scoped syntax withPosition(
@@ -135,7 +135,7 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $a >= $b) => do elabBinOp (← elabAST a) (← elabAST b) .ge
   | `(ast| $a & $b)  => do elabBinOp (← elabAST a) (← elabAST b) .and
   | `(ast| $a | $b)  => do elabBinOp (← elabAST a) (← elabAST b) .or
-  | `(ast| $f:ast $[$as:ast]*) => do
+  | `(ast| $f:ast @ $[$as:ast],*) => do
     as.foldlM (init := ← elabAST f) fun acc a => do
       mkAppM ``AST.app #[acc, ← elabAST a]
   | `(ast| $vs:var* $v:var => $b:ast) => do
