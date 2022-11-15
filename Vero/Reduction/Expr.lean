@@ -1,4 +1,4 @@
-import Vero.Syntax.Core.AST
+import Vero.Core.AST
 
 namespace Vero.Reduction
 
@@ -30,7 +30,7 @@ instance : ToString Expr where
 
 end Reduction.Expr
 
-namespace Syntax.Core
+namespace Core
 
 def idxFrom (i : Nat) (nam : String) : List String → Option Nat
   | n::ns => if n == nam then .some i else idxFrom (i + 1) nam ns
@@ -50,4 +50,4 @@ def AST.toExpr (x : AST) : Except String Expr :=
   | app x y => return .app (← aux ctx fs x) (← aux ctx fs y)
   aux [] x.freeVars x
 
-end Vero.Syntax.Core
+end Vero.Core
