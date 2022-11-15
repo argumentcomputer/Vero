@@ -1,38 +1,6 @@
-import Std.Data.RBMap
+import Vero.Frontend.AST
 
-namespace Vero.Syntax.Frontend
-
-/-- Inductive enumerating unary operators -/
-inductive UnOp
-  | neg | not
-  deriving Ord, Repr
-
-/-- Inductive enumerating binary operators -/
-inductive BinOp
-  | add | mul | sub | div | eq | neq | lt | le | gt | ge | and | or | apd
-  deriving Ord, Repr
-
-/-- Inductive enumerating the primitive types -/
-inductive Lit
-  | bool : Bool   → Lit
-  | int  : Int    → Lit
-  | str  : String → Lit
-  deriving Ord, Inhabited, Repr
-
-/-- Inductive describing the Vero AST -/
-inductive AST
-  | lit : Lit → AST
-  | var : String → AST
-  | unOp : UnOp → AST → AST
-  | binOp : BinOp → AST → AST → AST
-  | letIn : String → AST → AST → AST
-  | lam : String → AST → AST
-  | app : AST → AST → AST
-  | fork : AST → AST → AST → AST
-  | loop : AST → AST → AST
-  deriving Ord, Inhabited, Repr
-
-namespace DSL
+namespace Vero.Frontend.DSL
 
 open Lean Elab Meta Term
 
@@ -40,26 +8,65 @@ declare_syntax_cat           lit
 scoped syntax "tt"         : lit
 scoped syntax "ff"         : lit
 scoped syntax num          : lit
+scoped syntax "+" noWs num : lit
 scoped syntax "-" noWs num : lit
-scoped syntax str          : lit
 
 def mkApp' (name : Name) (e : Lean.Expr) : Lean.Expr :=
   mkApp (mkConst name) e
 
-partial def elabLit : TSyntax `lit → TermElabM Lean.Expr
-  | `(lit| tt) => mkAppM ``Lit.bool #[mkConst ``true] 
+def elabLit : TSyntax `lit → TermElabM Lean.Expr
+  | `(lit| tt) => mkAppM ``Lit.bool #[mkConst ``true]
   | `(lit| ff) => mkAppM ``Lit.bool #[mkConst ``false]
-  | `(lit| $n:num) => mkAppM ``Lit.int #[mkApp' ``Int.ofNat (mkNatLit n.getNat)]
-  | `(lit| -$n:num) =>
-    mkAppM ``Lit.int $ match n.getNat with
-      | 0       => #[mkApp' ``Int.ofNat (mkConst ``Nat.zero)]
-      | (n + 1) => #[mkApp' ``Int.negSucc (mkNatLit n)]
-  | `(lit| $s:str) => mkAppM ``Lit.str #[mkStrLit s.getString]
+  | `(lit| $n:num) => mkAppM ``Lit.nat #[mkNatLit n.getNat]
+  | `(lit| +$n:num) =>
+    mkAppM ``Lit.int #[mkApp' ``Int.ofNat (mkNatLit n.getNat)]
+  | `(lit| -$n:num) => mkAppM ``Lit.int $ match n.getNat with
+    | 0       => #[mkApp' ``Int.ofNat (mkConst ``Nat.zero)]
+    | (n + 1) => #[mkApp' ``Int.negSucc (mkNatLit n)]
   | _ => throwUnsupportedSyntax
 
-declare_syntax_cat    ast
-scoped syntax ident : ast
-scoped syntax lit   : ast
+declare_syntax_cat               type
+scoped syntax "nat"            : type
+scoped syntax "int"            : type
+scoped syntax "bool"           : type
+scoped syntax type " . "  type : type
+scoped syntax type " -> " type : type
+scoped syntax "(" type ")"     : type
+
+partial def elabType : TSyntax `type → TermElabM Lean.Expr
+  | `(type| nat)  => mkConst ``Typ.nat
+  | `(type| int)  => mkConst ``Typ.int
+  | `(type| bool) => mkConst ``Typ.bool
+  | `(type| $t₁:type . $t₂:type) => do
+    mkAppM ``Typ.pair #[← elabType t₁, ← elabType t₂]
+  | `(type| $t₁:type -> $t₂:type) => do
+    mkAppM ``Typ.pi #[← elabType t₁, ← elabType t₂]
+  | `(type| ($t:type)) => elabType t
+  | _ => throwUnsupportedSyntax
+
+declare_syntax_cat var
+scoped syntax ident (":" type)? : var
+scoped syntax "(" var ")" : var
+
+def mkVarNone (n : String) : Var :=
+  ⟨n, none⟩
+
+def mkVarSome (n : String) (typ : Typ) : Var :=
+  ⟨n, some typ⟩
+
+def elabStr (i : TSyntax `ident) : Expr :=
+  mkStrLit (i.getId.toString false)
+
+partial def elabVar : TSyntax `var → TermElabM Lean.Expr
+  | `(var| $i:ident) => return mkApp' ``mkVarNone (elabStr i)
+  | `(var| $i:ident : $t:type) => do
+    mkAppM ``mkVarSome #[elabStr i, ← elabType t]
+  | `(var| ($v:var)) => elabVar v
+  | _ => throwUnsupportedSyntax
+
+declare_syntax_cat  ast
+scoped syntax var : ast
+scoped syntax lit : ast
 scoped syntax " - " ws ast : ast
 scoped syntax " ! " ast : ast
 scoped syntax:50 ast:50 " + "  ast:51 : ast
@@ -74,15 +81,14 @@ scoped syntax:70 ast:70 " > "  ast:71 : ast
 scoped syntax:70 ast:70 " >= " ast:71 : ast
 scoped syntax:65 ast:65 " & "  ast:66 : ast
 scoped syntax:65 ast:65 " | "  ast:66 : ast
-scoped syntax:50 ast:50 " ++ " ast:51 : ast
 
 -- assignment
 scoped syntax withPosition(
-  ident+ colGt " := " colGt ast colGt " ; "
+  var+ colGt " := " colGt ast colGt ";"
   colGe ast) : ast
 
 -- anonymous lambda
-scoped syntax withPosition(ident+ colGt " => " colGt ast) : ast
+scoped syntax withPosition(var+ colGt " => " colGt ast) : ast
 
 -- application
 scoped syntax:49 ast (colGt ast:50)+ : ast
@@ -94,16 +100,8 @@ scoped syntax withPosition(
   " else "
     colGt ast) : ast
 
--- loops
-scoped syntax withPosition(
-  "while " colGt ast colGt " do "
-    colGt ast) : ast
-
 -- explicit parsing priority
 scoped syntax "(" ast ")" : ast
-
-def elabStr (i : TSyntax `ident) : Expr :=
-  mkStrLit (i.getId.toString false)
 
 def elabBinOp (a b : Expr) : BinOp → TermElabM Expr
   | .add => mkAppM ``AST.binOp #[mkConst ``BinOp.add, a, b]
@@ -118,10 +116,9 @@ def elabBinOp (a b : Expr) : BinOp → TermElabM Expr
   | .ge  => mkAppM ``AST.binOp #[mkConst ``BinOp.ge , a, b]
   | .and => mkAppM ``AST.binOp #[mkConst ``BinOp.and, a, b]
   | .or  => mkAppM ``AST.binOp #[mkConst ``BinOp.or , a, b]
-  | .apd => mkAppM ``AST.binOp #[mkConst ``BinOp.apd, a, b]
 
 partial def elabAST : TSyntax `ast → TermElabM Expr
-  | `(ast| $i:ident) => mkAppM ``AST.var #[elabStr i]
+  | `(ast| $v:var) => do mkAppM ``AST.var #[← elabVar v]
   | `(ast| $p:lit) => return ← mkAppM ``AST.lit #[← elabLit p]
   | `(ast| - $x) => do mkAppM ``AST.unOp #[mkConst ``UnOp.neg , ← elabAST x]
   | `(ast| ! $x) => do mkAppM ``AST.unOp #[mkConst ``UnOp.not , ← elabAST x]
@@ -137,28 +134,23 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $a >= $b) => do elabBinOp (← elabAST a) (← elabAST b) .ge
   | `(ast| $a & $b)  => do elabBinOp (← elabAST a) (← elabAST b) .and
   | `(ast| $a | $b)  => do elabBinOp (← elabAST a) (← elabAST b) .or
-  | `(ast| $a ++ $b) => do elabBinOp (← elabAST a) (← elabAST b) .apd
   | `(ast| $f:ast $[$as:ast]*) => do
     as.foldlM (init := ← elabAST f) fun acc a => do
       mkAppM ``AST.app #[acc, ← elabAST a]
-  | `(ast| $is:ident* $i:ident => $b:ast) => do
-    let init ← mkAppM ``AST.lam #[elabStr i, ← elabAST b]
-    is.foldrM (init := init) fun i acc => do
-      mkAppM ``AST.lam #[elabStr i, acc]
-  | `(ast| $i:ident $is:ident* := $v:ast; $b:ast) => do
-    let lam ← is.foldrM (init := ← elabAST v) fun i acc => do
-      mkAppM ``AST.lam #[elabStr i, acc]
-    mkAppM ``AST.letIn #[elabStr i, lam, ← elabAST b]
+  | `(ast| $vs:var* $v:var => $b:ast) => do
+    let init ← mkAppM ``AST.lam #[← elabVar v, ← elabAST b]
+    vs.foldrM (init := init) fun v acc => do
+      mkAppM ``AST.lam #[← elabVar v, acc]
+  | `(ast| $v:var $vs:var* := $val:ast; $b:ast) => do
+    let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
+      mkAppM ``AST.lam #[← elabVar v, acc]
+    mkAppM ``AST.letIn #[← elabVar v, lam, ← elabAST b]
   | `(ast| if $a:ast then $b:ast else $c:ast) => do
     mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
-  | `(ast| while $a:ast do $b:ast) => do
-    mkAppM ``AST.loop #[← elabAST a, ← elabAST b]
-  | `(ast| ($e)) => elabAST e
+  | `(ast| ($x:ast)) => elabAST x
   | _ => throwUnsupportedSyntax
 
-elab "⟦ " e:ast " ⟧" : term =>
-  elabAST e
+elab "⟦ " x:ast " ⟧" : term =>
+  elabAST x
 
-end DSL
-
-end Vero.Syntax.Frontend
+end Vero.Frontend.DSL

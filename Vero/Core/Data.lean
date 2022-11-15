@@ -1,6 +1,6 @@
-import Vero.Syntax.Core.AST
+import Vero.Core.DSL
 
-namespace Vero.Syntax.Core.AST
+namespace Vero.Core.Data
 
 open DSL
 
@@ -69,4 +69,4 @@ def MUL := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.MUL ($SND a) ($SND b)
 
 end INT
 
-end Vero.Syntax.Core.AST
+end Vero.Core.Data
