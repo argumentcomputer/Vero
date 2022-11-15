@@ -32,24 +32,30 @@ def Typ.toString : Typ → String
   | .nat  => "nat"
   | .int  => "int"
   | .bool => "bool"
-  | .pair t₁ t₂ => s!"({t₁.toString} . {t₂.toString})"
-  | .pi   t₁ t₂ => s!"({t₁.toString} -> {t₂.toString})"
+  | .pair t₁          t₂ => s!"({t₁.toString} . {t₂.toString})"
+  | .pi   pi@(.pi ..) t₂ => s!"({pi.toString}) -> {t₂.toString}"
+  | .pi   t₁          t₂ => s!"{t₁.toString} -> {t₂.toString}"
 
 instance : ToString Typ := ⟨Typ.toString⟩
 
+structure Var where
+  name : String
+  type : Option Typ
+  deriving Ord, Inhabited, Repr
+
 inductive AST
   | lit : Lit → AST
-  | var : Option Typ → String → AST
+  | var : Var → AST
   | unOp : UnOp → AST → AST
   | binOp : BinOp → AST → AST → AST
-  | letIn : String → Option Typ → AST → AST → AST
-  | lam : String → Option Typ → AST → AST
+  | letIn : Var → AST → AST → AST
+  | lam : Var → AST → AST
   | app : AST → AST → AST
   | fork : AST → AST → AST → AST
   deriving Ord, Inhabited, Repr
 
 def AST.getVarTyp (s : String) : AST → Option Typ
-  | .var typ? s' => if s == s' then typ? else none
+  | .var ⟨s', typ?⟩ => if s == s' then typ? else none
   | .lit .. => none
   | .unOp _ x => x.getVarTyp s
   | .binOp _ x y => match (x.getVarTyp s, y.getVarTyp s) with
@@ -57,14 +63,14 @@ def AST.getVarTyp (s : String) : AST → Option Typ
     | (some x, none) => some x
     | (none, some y) => some y
     | (none, none) => none
-  | .letIn s' _ v b =>
+  | .letIn ⟨s', _⟩ v b =>
     if s == s' then none
     else match (v.getVarTyp s, b.getVarTyp s) with
       | (some v, some b) => if v == b then some v else none
       | (some v, none) => some v
       | (none, some b) => some b
       | (none, none) => none
-  | .lam s' _ b => if s == s' then none else b.getVarTyp s
+  | .lam ⟨s', _⟩ b => if s == s' then none else b.getVarTyp s
   | .app f a => match (f.getVarTyp s, a.getVarTyp s) with
     | (some x, some y) => if x == y then some x else none
     | (some x, none) => some x
@@ -86,7 +92,7 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
     | .nat  _ => return .nat
     | .int  _ => return .int
     | .bool _ => return .bool
-  | .var sTyp? s => match (sTyp?, ctx.find? s) with
+  | .var ⟨s, sTyp?⟩ => match (sTyp?, ctx.find? s) with
     | (some sTyp, some ctxTyp) =>
       if sTyp == ctxTyp then return sTyp
       else throw s!"Type mismatch for {s}: {sTyp} ≠ {ctxTyp}"
@@ -120,7 +126,7 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
   | .binOp .or x y => do match (← x.inferTyp ctx, ← y.inferTyp ctx) with
     | (.bool, .bool) => return .bool
     | x => throw s!"Expected a pair of bools but got {x}"
-  | .letIn s sTyp? v b => do
+  | .letIn ⟨s, sTyp?⟩ v b => do
     let vTyp ← v.inferTyp ctx
     match (sTyp?, b.getVarTyp s) with
     | (some sTyp, some sTyp') =>
@@ -130,8 +136,8 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
     | (none, some sTyp) =>
       if vTyp == sTyp then b.inferTyp $ ctx.insert s vTyp
       else throw s!"Type mismatch for {s}: {vTyp} / {sTyp}"
-    | (none, none) => b.inferTyp ctx
-  | .lam s sTyp? b => do
+    | (none, none) => b.inferTyp $ ctx.insert s vTyp
+  | .lam ⟨s, sTyp?⟩ b => do
     let (sTyp, bTyp) ← match (sTyp?, b.getVarTyp s) with
       | (some sTyp, some sTyp') =>
         if sTyp == sTyp' then
@@ -139,7 +145,7 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
         else throw s!"Type mismatch for {s}: {sTyp} / {sTyp'}"
       | (some sTyp, none)
       | (none, some sTyp) => pure (sTyp, ← b.inferTyp $ ctx.insert s sTyp)
-      | (none, none) => throw "Unable to infer the type of lam"
+      | (none, none) => throw s!"Unable to infer the type of lam input {s}"
     return .pi sTyp bTyp
   | .app f a => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
     | (pi@(.pi inTyp outTyp), aTyp) =>
