@@ -50,6 +50,9 @@ def unify2 : Typ → Typ → Except String Typ
 @[inline] def unify4 (a b c d : Typ) : Except String Typ := do
   unify2 (← unify2 (← unify2 a b) c) d
 
+@[inline] def unify5 (a b c d e : Typ) : Except String Typ := do
+  unify2 (← unify2 (← unify2 (← unify2 a b) c) d) e
+
 def AST.getVarTyp (s : String) : AST → Except String Typ
   | .var ⟨s', typ⟩ => if s == s' then pure typ else pure .hole
   | .lit .. => pure .hole
@@ -92,10 +95,9 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
     | .fork a b c =>
       return .fork (← a.fillHoles ctx .bool) (← b.fillHoles ctx typ) (← c.fillHoles ctx typ)
     | .letIn ⟨s, sTyp⟩ v b => do
-      let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s) typ
-      let b ← b.fillHoles ctx sTyp
-      let sTyp ← unify2 sTyp (← b.getVarTyp s)
+      let sTyp ← unify5 sTyp (← v.inferTyp ctx) (← v.getVarTyp s) (← b.getVarTyp s) typ
       let ctx := ctx.insert s sTyp
+      let b ← b.fillHoles ctx sTyp
       let v ← v.fillHoles ctx sTyp
       return .letIn ⟨s, sTyp⟩ v b
     | .lam ⟨s, sTyp⟩ b => match typ with
