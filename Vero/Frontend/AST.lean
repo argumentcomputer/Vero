@@ -23,7 +23,7 @@ inductive Lit
 
 structure Var where
   name : String
-  type : Option Typ
+  type : Typ
   deriving Ord, Inhabited, Repr
 
 inductive AST
@@ -37,37 +37,30 @@ inductive AST
   | fork : AST → AST → AST → AST
   deriving Ord, Inhabited, Repr
 
-def AST.getVarTyp (s : String) : AST → Option Typ
-  | .var ⟨s', typ?⟩ => if s == s' then typ? else none
-  | .lit .. => none
+def unify2 : Typ → Typ → Except String Typ
+  | .hole, typ
+  | typ, .hole => pure typ
+  | .pi i₁ o₁, .pi i₂ o₂ => return .pi (← unify2 i₁ i₂) (← unify2 o₁ o₂)
+  | .pair x₁ y₁, .pair x₂ y₂ => return .pair (← unify2 x₁ x₂) (← unify2 y₁ y₂)
+  | x, y => if x == y then pure x else throw s!"Can't unify {x} and {y}"
+
+@[inline] def unify3 (a b c : Typ) : Except String Typ := do
+  unify2 (← unify2 a b) c
+
+@[inline] def unify4 (a b c d : Typ) : Except String Typ := do
+  unify2 (← unify2 (← unify2 a b) c) d
+
+def AST.getVarTyp (s : String) : AST → Except String Typ
+  | .var ⟨s', typ⟩ => if s == s' then pure typ else pure .hole
+  | .lit .. => pure .hole
   | .unOp _ x => x.getVarTyp s
-  | .binOp _ x y => match (x.getVarTyp s, y.getVarTyp s) with
-    | (some x, some y) => if x == y then some x else none
-    | (some x, none) => some x
-    | (none, some y) => some y
-    | (none, none) => none
+  | .binOp _ x y => do unify2 (← x.getVarTyp s) (← y.getVarTyp s)
   | .letIn ⟨s', _⟩ v b =>
-    if s == s' then none
-    else match (v.getVarTyp s, b.getVarTyp s) with
-      | (some v, some b) => if v == b then some v else none
-      | (some v, none) => some v
-      | (none, some b) => some b
-      | (none, none) => none
-  | .lam ⟨s', _⟩ b => if s == s' then none else b.getVarTyp s
-  | .app f a => match (f.getVarTyp s, a.getVarTyp s) with
-    | (some x, some y) => if x == y then some x else none
-    | (some x, none) => some x
-    | (none, some y) => some y
-    | (none, none) => none
-  | .fork a b c => match (a.getVarTyp s, b.getVarTyp s, c.getVarTyp s) with
-    | (some a, some b, some c) => if a == b && b == c then some a else none
-    | (some a, some b, none) => if a == b then some a else none
-    | (some a, none, some c) => if a == c then some a else none
-    | (none, some b, some c) => if b == c then some b else none
-    | (none, none, some c) => some c
-    | (none, some b, none) => some b
-    | (some a, none, none) => some a
-    | (none, none, none) => none
+    if s == s' then pure .hole
+    else do unify2 (← v.getVarTyp s) (← b.getVarTyp s)
+  | .lam ⟨s', _⟩ b => if s == s' then pure .hole else b.getVarTyp s
+  | .app f a => do unify2 (← f.getVarTyp s) (← a.getVarTyp s)
+  | .fork a b c => do unify3 (← a.getVarTyp s) (← b.getVarTyp s) (← c.getVarTyp s)
 
 def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
     AST → Except String Typ
@@ -75,71 +68,66 @@ def AST.inferTyp (ctx : Std.RBMap String Typ compare := default) :
     | .nat  _ => return .nat
     | .int  _ => return .int
     | .bool _ => return .bool
-  | .var ⟨s, sTyp?⟩ => match (sTyp?, ctx.find? s) with
-    | (some sTyp, some ctxTyp) =>
-      if sTyp == ctxTyp then return sTyp
-      else throw s!"Type mismatch for {s}: {sTyp} ≠ {ctxTyp}"
-    | (some typ, none)
-    | (none, some typ) => return typ
-    | (none, none) => throw s!"Unable to infer the type of {s}"
+  | .var ⟨s, sTyp⟩ => unify2 sTyp (ctx.find? s)
   | .unOp .neg x => do match ← x.inferTyp ctx with
-    | .int => return .int
+    | .hole | .int => return .int
     | x => throw s!"Expected type int but got {x}"
   | .unOp .not x => do match ← x.inferTyp ctx with
-    | .bool => return .bool
+    | .hole | .bool => return .bool
     | x => throw s!"Expected type bool but got {x}"
   | .binOp .add x y
   | .binOp .mul x y
   | .binOp .sub x y
-  | .binOp .div x y
+  | .binOp .div x y => do match (← x.inferTyp ctx, ← y.inferTyp ctx) with
+    | (.hole, .nat)
+    | (.nat, .hole)
+    | (.nat, .nat) => return .nat
+    | (.hole, .int)
+    | (.int, .hole)
+    | (.int, .int) => return .int
+    | x => throw s!"Expected a pair of nats or ints but got {x}"
   | .binOp .lt x y
   | .binOp .le x y
   | .binOp .gt x y
   | .binOp .ge x y => do match (← x.inferTyp ctx, ← y.inferTyp ctx) with
-    | (.nat, .nat) => return .nat
-    | (.int, .int) => return .int
+    | (.hole, .nat)
+    | (.nat, .hole)
+    | (.nat, .nat)
+    | (.hole, .int)
+    | (.int, .hole)
+    | (.int, .int) => return .bool
     | x => throw s!"Expected a pair of nats or ints but got {x}"
   | .binOp .eq x y
-  | .binOp .neq x y => do
-    let xTyp ← x.inferTyp ctx
-    let yTyp ← y.inferTyp ctx
-    if xTyp == yTyp then return xTyp
-    else throw s!"Expected the same types but got {xTyp} and {yTyp}"
+  | .binOp .neq x y => do match (← x.inferTyp ctx, ← y.inferTyp ctx) with
+    | (_, .hole)
+    | (.hole, _) => return .bool
+    | (xTyp, yTyp) =>
+      if xTyp == yTyp then return .bool
+      else throw s!"Expected the same types but got {xTyp} and {yTyp}"
   | .binOp .and x y
   | .binOp .or x y => do match (← x.inferTyp ctx, ← y.inferTyp ctx) with
+    | (.hole, .bool)
+    | (.bool, .hole)
     | (.bool, .bool) => return .bool
     | x => throw s!"Expected a pair of bools but got {x}"
-  | .letIn ⟨s, sTyp?⟩ v b => do
-    let vTyp ← v.inferTyp ctx
-    match (sTyp?, b.getVarTyp s) with
-    | (some sTyp, some sTyp') =>
-      if sTyp == vTyp && vTyp == sTyp' then b.inferTyp $ ctx.insert s sTyp
-      else throw s!"Type mismatch for {s}: {sTyp} / {vTyp} / {sTyp'}"
-    | (some sTyp, none)
-    | (none, some sTyp) =>
-      if vTyp == sTyp then b.inferTyp $ ctx.insert s vTyp
-      else throw s!"Type mismatch for {s}: {vTyp} / {sTyp}"
-    | (none, none) => b.inferTyp $ ctx.insert s vTyp
-  | .lam ⟨s, sTyp?⟩ b => do
-    let (sTyp, bTyp) ← match (sTyp?, b.getVarTyp s) with
-      | (some sTyp, some sTyp') =>
-        if sTyp == sTyp' then
-          pure (sTyp, ← b.inferTyp $ ctx.insert s sTyp)
-        else throw s!"Type mismatch for {s}: {sTyp} / {sTyp'}"
-      | (some sTyp, none)
-      | (none, some sTyp) => pure (sTyp, ← b.inferTyp $ ctx.insert s sTyp)
-      | (none, none) => throw s!"Unable to infer the type of lam input {s}"
+  | .letIn ⟨s, sTyp⟩ v b => do
+    let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s) (← b.getVarTyp s)
+    b.inferTyp $ ctx.insert s sTyp
+  | .lam ⟨s, sTyp⟩ b => do
+    let sTyp ← unify2 sTyp (← b.getVarTyp s)
+    let bTyp ← b.inferTyp $ ctx.insert s sTyp
     return .pi sTyp bTyp
   | .app f a => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
-    | (pi@(.pi inTyp outTyp), aTyp) =>
-      if inTyp == aTyp then return outTyp
+    | (.hole, _)
+    | (.pi _ .hole, _) => pure .hole
+    | (.pi .hole o, _)
+    | (.pi _ o, .hole) => pure o
+    | pi@(.pi iTyp oTyp, aTyp) =>
+      if iTyp == aTyp then return oTyp
       else throw s!"Type mismatch when applying {aTyp} to pi type {pi}"
     | (x, _) => throw s!"Expected a pi type but got {x}"
-  | .fork a b c => do
-    match (← a.inferTyp ctx, ← b.inferTyp ctx, ← c.inferTyp ctx) with
-    | (.bool, typ', typ'') =>
-      if typ' == typ'' then return typ'
-      else throw s!"Type mismatch for {typ'} / {typ''}"
-    | (x, _, _) => throw s!"Required bool type but found {x}"
+  | .fork x a b => do match ← x.inferTyp ctx with
+    | .hole | .bool => unify2 (← a.inferTyp ctx) (← b.inferTyp ctx)
+    | xTyp => throw s!"Expected bool type but got {xTyp}"
 
 end Vero.Frontend

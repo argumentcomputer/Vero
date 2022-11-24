@@ -26,6 +26,7 @@ def elabLit : TSyntax `lit → TermElabM Lean.Expr
   | _ => throwUnsupportedSyntax
 
 declare_syntax_cat             typ
+scoped syntax "_"            : typ
 scoped syntax "nat"          : typ
 scoped syntax "int"          : typ
 scoped syntax "bool"         : typ
@@ -34,6 +35,7 @@ scoped syntax typ " -> " typ : typ
 scoped syntax "(" typ ")"    : typ
 
 partial def elabTyp : TSyntax `typ → TermElabM Lean.Expr
+  | `(typ| _)    => mkConst ``Typ.hole
   | `(typ| nat)  => mkConst ``Typ.nat
   | `(typ| int)  => mkConst ``Typ.int
   | `(typ| bool) => mkConst ``Typ.bool
@@ -51,19 +53,12 @@ declare_syntax_cat var
 scoped syntax ident (":" typ)? : var
 scoped syntax "(" var ")" : var
 
-def mkVarNone (n : String) : Var :=
-  ⟨n, none⟩
-
-def mkVarSome (n : String) (typ : Typ) : Var :=
-  ⟨n, some typ⟩
-
 def elabStr (i : TSyntax `ident) : Expr :=
   mkStrLit (i.getId.toString false)
 
 partial def elabVar : TSyntax `var → TermElabM Lean.Expr
-  | `(var| $i:ident) => return mkApp' ``mkVarNone (elabStr i)
-  | `(var| $i:ident : $t:typ) => do
-    mkAppM ``mkVarSome #[elabStr i, ← elabTyp t]
+  | `(var| $i:ident) => do mkAppM ``Var.mk #[elabStr i, mkConst ``Typ.hole]
+  | `(var| $i:ident : $t:typ) => do mkAppM ``Var.mk #[elabStr i, ← elabTyp t]
   | `(var| ($v:var)) => elabVar v
   | _ => throwUnsupportedSyntax
 
