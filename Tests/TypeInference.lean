@@ -36,4 +36,3 @@ def main := lspecIO $
         withExceptOk "Type inference succeeds" ast.inferTyp fun gotTyp =>
           test s!"Expected {expecTyp} equals {gotTyp}" (expecTyp == gotTyp)
       | none => withExceptError "Type inference fails" ast.inferTyp fun _ => .done
-#eval main
