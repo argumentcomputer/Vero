@@ -21,6 +21,11 @@ inductive Lit
   | bool : Bool → Lit
   deriving Ord, Inhabited, Repr
 
+def Lit.typ : Lit → Typ
+  | .nat  _ => .nat
+  | .int  _ => .int
+  | .bool _ => .bool
+
 structure Var where
   name : String
   type : Typ
@@ -69,11 +74,7 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
   | x, .hole => pure x
   | x, typ => match x with
     | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify typ typ'⟩
-    | x@(.lit l) => match (l, typ) with
-      | (.nat _, .nat)
-      | (.int _, .int)
-      | (.bool _, .bool) => return x
-      | _ => throw ""
+    | x@(.lit l) => do discard $ unify typ l.typ; return x
     | .unOp op x => match (op, typ) with
       | (.neg, .int)  => return .unOp .neg (← x.fillHoles ctx .int)
       | (.not, .bool) => return .unOp .not (← x.fillHoles ctx .bool)
@@ -115,10 +116,7 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
 
 def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
   -- | _ => sorry
-  | .lit l => match l with
-    | .nat  _ => return .nat
-    | .int  _ => return .int
-    | .bool _ => return .bool
+  | .lit l => return l.typ
   | .var ⟨s, sTyp⟩ => unify sTyp (ctx.find? s)
   | .unOp op x => match op with
     | .neg => do unify .int  (← x.inferTyp ctx)
@@ -137,6 +135,9 @@ def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     | .and | .or => unify .bool xyTyp
   | .letIn ⟨s, sTyp⟩ v b => do
     let sTyp ← unify' sTyp [(← v.inferTyp ctx), (← v.getVarTyp s), (← b.getVarTyp s)]
+    let ctx := ctx.insert s sTyp
+    let v ← v.fillHoles ctx sTyp
+    let sTyp ← unify' sTyp [(← v.getVarTyp s), (← b.getVarTyp s)]
     b.inferTyp $ ctx.insert s sTyp
   | .lam ⟨s, sTyp⟩ b => do match ← unify sTyp (← b.getVarTyp s) with
     | .hole =>
@@ -156,9 +157,9 @@ def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
       if iTyp == aTyp then return oTyp
       else throw s!"Type mismatch when applying {aTyp} to pi type {pi}"
     | (x, _) => throw s!"Expected a pi type but got {x}"
-  | .fork x a b => do match ← x.inferTyp ctx with
-    | .hole | .bool => unify (← a.inferTyp ctx) (← b.inferTyp ctx)
-    | xTyp => throw s!"Expected bool type but got {xTyp}"
+  | .fork x a b => do
+    discard $ unify .bool (← x.inferTyp ctx)
+    unify (← a.inferTyp ctx) (← b.inferTyp ctx)
 
 end
 
