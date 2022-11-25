@@ -1,6 +1,7 @@
 namespace Vero
 
 inductive Typ
+  | hole
   | nat
   | int
   | bool
@@ -8,7 +9,12 @@ inductive Typ
   | pi   : Typ → Typ → Typ
   deriving Ord, BEq, Inhabited, Repr
 
+instance : Coe (Option Typ) Typ where coe
+  | none => .hole
+  | some typ => typ
+
 def Typ.toString : Typ → String
+  | .hole => "_"
   | .nat  => "nat"
   | .int  => "int"
   | .bool => "bool"

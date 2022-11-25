@@ -3,24 +3,28 @@ import Vero.Frontend.DSL
 
 open Vero Frontend.DSL
 
-def simpleBool := ⟦
-  ff & tt
-⟧
-
-def simpleLam := ⟦
-  f : nat -> int -> nat := n (y : int) => n : nat;
-  f
-⟧
-
-def simpleLam' := ⟦
-  f x (y : nat) := (x : nat) + y;
-  f
-⟧
-
 def pairs : List $ Frontend.AST × (Option Typ) := [
-  (simpleBool, some ⟪bool⟫),
-  (simpleLam,  some ⟪nat -> int -> nat⟫),
-  (simpleLam', some ⟪nat -> nat -> nat⟫)
+  (⟦3⟧, some .nat),
+  (⟦3 + +3⟧, none),
+  (⟦3 + x⟧, some .nat),
+  (⟦x + +3⟧, some .int),
+  (⟦x + tt⟧, none),
+  (⟦ff & tt⟧, some .bool),
+  (⟦f : nat -> int -> nat := n y => n; f⟧,  some ⟪nat -> int -> nat⟫),
+  -- (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫),
+  (⟦(x : nat) y => x + y⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦f : _ -> _ -> _ := x (y : nat) => x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦f x (y : nat) := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦f (x : nat) y := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  -- (⟦f := x => x; f @ 3⟧, some ⟪nat⟫),
+  (⟦f : _ -> nat := x => x; f @ 3⟧, some ⟪nat⟫),
+  -- (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
+  -- (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
+  -- (⟦f : _ := x => x; f @ 3⟧, some ⟪nat⟫),
+  -- (⟦(x => x) @ 1⟧, some ⟪nat⟫),
+  -- (⟦(x (y : int) => x) @ 1⟧, some ⟪int -> nat⟫),
+  (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫)
+  -- (⟦x (f : _ -> int) => f @ (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫),
   -- TODO : add more tests
 ]
 

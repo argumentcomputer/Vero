@@ -43,6 +43,7 @@ mutual
   failure.
   -/
   partial def toValueOf (e : Expr) : Typ → Value
+    | .hole
     | .pi .. => .expr e
     | .nat => match e.toNat with
       | .ok n => .nat n
