@@ -36,7 +36,6 @@ inductive AST
   | var : Var → AST
   | unOp : UnOp → AST → AST
   | binOp : BinOp → AST → AST → AST
-  | letIn : Var → AST → AST → AST
   | lam : Var → AST → AST
   | app : AST → AST → AST
   | fork : AST → AST → AST → AST
@@ -58,9 +57,6 @@ def AST.getVarTyp (s : String) : AST → Except String Typ
   | .lit .. => pure .hole
   | .unOp _ x => x.getVarTyp s
   | .binOp _ x y => do unify (← x.getVarTyp s) (← y.getVarTyp s)
-  | .letIn ⟨s', _⟩ v b =>
-    if s == s' then pure .hole
-    else do unify (← v.getVarTyp s) (← b.getVarTyp s)
   | .lam ⟨s', _⟩ b => if s == s' then pure .hole else b.getVarTyp s
   | .app f a => do unify (← f.getVarTyp s) (← a.getVarTyp s)
   | .fork a b c => do unify' (← a.getVarTyp s) [(← b.getVarTyp s), (← c.getVarTyp s)]
@@ -86,12 +82,6 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
       | _ => return b
     | .fork a b c =>
       return .fork (← a.fillHoles ctx .bool) (← b.fillHoles ctx typ) (← c.fillHoles ctx typ)
-    | .letIn ⟨s, sTyp⟩ v b => do
-      let sTyp ← unify' sTyp [← v.getVarTyp s, ← b.getVarTyp s, typ]
-      let ctx := ctx.insert s sTyp
-      let v ← v.fillHoles ctx sTyp
-      let b ← b.fillHoles ctx typ
-      return .letIn ⟨s, sTyp⟩ v b
     | .lam ⟨s, sTyp⟩ b => match typ with
       | .pi iTyp oTyp => do
         let sTyp ← unify' sTyp [iTyp, ← b.getVarTyp s]
@@ -128,14 +118,6 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
       | x => throw s!"Expected nat or int but got {x}"
     | .eq | .neq => return .bool
     | .and | .or => unify .bool xyTyp
-  | .letIn ⟨s, sTyp⟩ v b => do
-    let sTyp ← unify' sTyp [← v.inferTyp ctx, ← v.getVarTyp s, ← b.getVarTyp s]
-    let ctx := ctx.insert s sTyp
-    let bTyp ← b.inferTyp ctx
-    let v ← v.fillHoles ctx sTyp
-    let b ← b.fillHoles ctx bTyp
-    let sTyp ← unify' sTyp [← v.inferTyp ctx, ← v.getVarTyp s, ← b.getVarTyp s]
-    b.inferTyp $ ctx.insert s sTyp
   | .lam ⟨s, sTyp⟩ b => do
     let sTyp ← unify sTyp (← b.getVarTyp s)
     let ctx := ctx.insert s sTyp
@@ -150,7 +132,7 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
       | _ => throw ""
     let f ← f.fillHoles ctx (.pi aTyp .hole)
     match ← f.inferTyp ctx with
-    | .pi iTyp oTyp => discard $ unify iTyp aTyp; return oTyp
+    | .pi _ oTyp => return oTyp
     | _ => throw ""
   | .fork x a b => do
     discard $ unify .bool (← x.inferTyp ctx)

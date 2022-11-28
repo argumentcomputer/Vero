@@ -143,7 +143,7 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $v:var $vs:var* := $val:ast; $b:ast) => do
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
-    mkAppM ``AST.letIn #[← elabVar v, lam, ← elabAST b]
+    mkAppM ``AST.app #[← mkAppM ``AST.lam #[← elabVar v, ← elabAST b], lam]
   | `(ast| if $a:ast then $b:ast else $c:ast) => do
     mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
   | `(ast| ($x:ast)) => elabAST x

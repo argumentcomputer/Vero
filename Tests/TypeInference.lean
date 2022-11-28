@@ -11,9 +11,7 @@ open Vero Frontend.DSL
 --   (⟦x + tt⟧, none),
 --   (⟦ff & tt⟧, some .bool),
 --   (⟦(x => x) @ 1⟧, some ⟪nat⟫),
---   (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
 --   (⟦f : _ -> nat := x => x; f @ 3⟧, some ⟪nat⟫),
---   (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫),
 --   (⟦f : nat -> int -> nat := n y => n; f⟧,  some ⟪nat -> int -> nat⟫),
 --   (⟦(x : nat) y => x + y⟧, some ⟪nat -> nat -> nat⟫),
 --   (⟦f : _ -> _ -> _ := x (y : nat) => x + y; f⟧, some ⟪nat -> nat -> nat⟫),
@@ -24,10 +22,12 @@ open Vero Frontend.DSL
 
 -- TODO : fix
 def pairs : List $ Frontend.AST × (Option Typ) := [
-  -- (⟦f := x => x; f @ 3⟧, some ⟪nat⟫)
+  (⟦f := x => x; f @ 3⟧, some ⟪nat⟫)
+  -- (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
+  -- (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫)
   -- (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
   -- (⟦f : _ := x => x; f @ 3⟧, some ⟪nat⟫)
-  (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫)
+  -- (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫)
   -- (⟦x (f : _ -> int) => f @ (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫)
 ]
 
