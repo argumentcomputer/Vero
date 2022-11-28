@@ -134,11 +134,14 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     let sTyp ← unify sTyp (← b.getVarTyp s)
     return .pi sTyp bTyp
   | .app f a => do
-    let aTyp ← match ← f.inferTyp ctx with
-      | .hole => a.inferTyp ctx
-      | .pi iTyp _ => unify iTyp (← a.inferTyp ctx)
+    let aTyp ← a.inferTyp ctx
+    let (fTyp, aTyp) ← match ← f.inferTyp ctx with
+      | .hole => pure (.pi aTyp .hole, aTyp)
+      | .pi iTyp oTyp => do
+        let aTyp ← unify aTyp iTyp
+        pure (.pi aTyp oTyp, aTyp)
       | _ => throw ""
-    let f' ← f.fillHoles ctx (.pi aTyp .hole)
+    let f' ← f.fillHoles ctx fTyp
     let a' ← a.fillHoles ctx aTyp
     if f' != f || a' != a then inferTyp ctx (.app f' a')
     else match ← f.inferTyp ctx with

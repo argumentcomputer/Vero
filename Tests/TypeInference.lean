@@ -26,8 +26,8 @@ open Vero Frontend.DSL
 
 -- TODO : fix
 def pairs : List $ Frontend.AST × (Option Typ) := [
-  (⟦f := x => x; f @ 3⟧, some ⟪nat⟫)
-  -- (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
+  -- (⟦f := x => x; f @ 3⟧, some ⟪nat⟫)
+  (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
   -- (⟦f : _ := x => x; f @ 3⟧, some ⟪nat⟫)
 ]
 
