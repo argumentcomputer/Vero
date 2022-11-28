@@ -135,18 +135,15 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     return .pi sTyp bTyp
   | .app f a => do
     let aTyp ← a.inferTyp ctx
-    let (fTyp, aTyp) ← match ← f.inferTyp ctx with
-      | .hole => pure (.pi aTyp .hole, aTyp)
+    let (iTyp, oTyp) ← match ← f.inferTyp ctx with
+      | .hole => pure (aTyp, .hole)
       | .pi iTyp oTyp => do
-        let aTyp ← unify aTyp iTyp
-        pure (.pi aTyp oTyp, aTyp)
+        pure (← unify aTyp iTyp, oTyp)
       | _ => throw ""
-    let f' ← f.fillHoles ctx fTyp
-    let a' ← a.fillHoles ctx aTyp
+    let f' ← f.fillHoles ctx (.pi iTyp oTyp)
+    let a' ← a.fillHoles ctx iTyp
     if f' != f || a' != a then inferTyp ctx (.app f' a')
-    else match ← f.inferTyp ctx with
-      | .pi _ oTyp => return oTyp
-      | _ => throw ""
+    else pure oTyp
   | .fork x a b => do
     discard $ unify .bool (← x.inferTyp ctx)
     unify (← a.inferTyp ctx) (← b.inferTyp ctx)
