@@ -7,19 +7,19 @@ namespace Vero.Frontend
 /-- Inductive enumerating unary operators -/
 inductive UnOp
   | neg | not
-  deriving Ord, Repr
+  deriving Ord, Repr, BEq
 
 /-- Inductive enumerating binary operators -/
 inductive BinOp
   | add | mul | sub | div | eq | neq | lt | le | gt | ge | and | or
-  deriving Ord, Repr
+  deriving Ord, Repr, BEq
 
 /-- Inductive enumerating the primitive types -/
 inductive Lit
   | nat  : Nat  → Lit
   | int  : Int  → Lit
   | bool : Bool → Lit
-  deriving Ord, Inhabited, Repr
+  deriving Ord, Inhabited, Repr, BEq
 
 def Lit.typ : Lit → Typ
   | .nat  _ => .nat
@@ -29,7 +29,10 @@ def Lit.typ : Lit → Typ
 structure Var where
   name : String
   type : Typ
-  deriving Ord, Inhabited, Repr
+  deriving Ord, Inhabited, BEq
+
+instance : Repr Var where
+  reprPrec x _ := s!"({x.name} : {x.type})"
 
 inductive AST
   | lit : Lit → AST
@@ -39,7 +42,7 @@ inductive AST
   | lam : Var → AST → AST
   | app : AST → AST → AST
   | fork : AST → AST → AST → AST
-  deriving Ord, Inhabited, Repr
+  deriving Ord, Inhabited, Repr, BEq
 
 def unify : Typ → Typ → Except String Typ
   | .hole, typ
@@ -63,7 +66,9 @@ def AST.getVarTyp (s : String) : AST → Except String Typ
 
 abbrev Ctx := Std.RBMap String Typ compare
 
-def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
+mutual
+
+partial def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
   | x, .hole => pure x
   | x, typ => match x with
     | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify typ typ'⟩
@@ -87,18 +92,21 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
         let sTyp ← unify' sTyp [iTyp, ← b.getVarTyp s]
         let ctx := ctx.insert s sTyp
         let b ← b.fillHoles ctx oTyp
+        let sTyp ← unify sTyp (← b.getVarTyp s)
         return .lam ⟨s, sTyp⟩ b
       | _ => throw ""
-    | x@(.app ..) => return x
-    -- | x@(.app f a) => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
-    --   | (.hole, _) => return x
-    --   | (.pi iTyp oTyp, aTyp) =>
-    --     let oTyp ← unify oTyp typ
-    --     let iTyp ← unify iTyp aTyp
-    --     let a ← a.fillHoles ctx iTyp
-    --     let f ← f.fillHoles ctx (.pi iTyp oTyp)
-    --     return .app f a
-    --   | _ => throw ""
+    | .app f a => do match ← f.inferTyp ctx with
+      | .hole =>
+        let aTyp ← a.inferTyp ctx
+        let f ← f.fillHoles ctx (.pi aTyp typ)
+        return .app f a
+      | .pi iTyp oTyp =>
+        let oTyp ← unify oTyp typ
+        let iTyp ← unify iTyp (← a.inferTyp ctx)
+        let f ← f.fillHoles ctx (.pi iTyp oTyp)
+        let a ← a.fillHoles ctx iTyp
+        return .app f a
+      | _ => throw ""
 
 partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
   | .lit l => return l.typ
@@ -130,12 +138,16 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
       | .hole => a.inferTyp ctx
       | .pi iTyp _ => unify iTyp (← a.inferTyp ctx)
       | _ => throw ""
-    let f ← f.fillHoles ctx (.pi aTyp .hole)
-    match ← f.inferTyp ctx with
-    | .pi _ oTyp => return oTyp
-    | _ => throw ""
+    let f' ← f.fillHoles ctx (.pi aTyp .hole)
+    let a' ← a.fillHoles ctx aTyp
+    if f' != f || a' != a then inferTyp ctx (.app f' a')
+    else match ← f.inferTyp ctx with
+      | .pi _ oTyp => return oTyp
+      | _ => throw ""
   | .fork x a b => do
     discard $ unify .bool (← x.inferTyp ctx)
     unify (← a.inferTyp ctx) (← b.inferTyp ctx)
+
+end
 
 end Vero.Frontend

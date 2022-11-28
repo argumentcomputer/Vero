@@ -17,18 +17,18 @@ open Vero Frontend.DSL
 --   (⟦f : _ -> _ -> _ := x (y : nat) => x + y; f⟧, some ⟪nat -> nat -> nat⟫),
 --   (⟦f x (y : nat) := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
 --   (⟦f (x : nat) y := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
---   (⟦(x (y : int) => x) @ 1⟧, some ⟪int -> nat⟫)
+--   (⟦(x (y : int) => x) @ 1⟧, some ⟪int -> nat⟫),
+--   (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫),
+--   (⟦x (f : _ -> int) => f @ (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫),
+--   (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
+--   (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫)
 -- ]
 
 -- TODO : fix
 def pairs : List $ Frontend.AST × (Option Typ) := [
   (⟦f := x => x; f @ 3⟧, some ⟪nat⟫)
-  -- (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
-  -- (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫)
   -- (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫)
   -- (⟦f : _ := x => x; f @ 3⟧, some ⟪nat⟫)
-  -- (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫)
-  -- (⟦x (f : _ -> int) => f @ (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫)
 ]
 
 open LSpec in
