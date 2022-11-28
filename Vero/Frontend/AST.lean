@@ -67,10 +67,7 @@ def AST.getVarTyp (s : String) : AST → Except String Typ
 
 abbrev Ctx := Std.RBMap String Typ compare
 
-mutual
-
 def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
-  -- | _ => sorry
   | x, .hole => pure x
   | x, typ => match x with
     | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify typ typ'⟩
@@ -79,43 +76,41 @@ def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
       | (.neg, .int)  => return .unOp .neg (← x.fillHoles ctx .int)
       | (.not, .bool) => return .unOp .not (← x.fillHoles ctx .bool)
       | _ => throw ""
-    | b@(.binOp op x y) => do
-      let xyTyp ← unify (← x.inferTyp ctx) (← y.inferTyp ctx)
-      match op with
-      | .add | .mul | .sub | .div | .and | .or => do
-        let xyTyp ← unify typ xyTyp
-        return .binOp op (← x.fillHoles ctx xyTyp) (← y.fillHoles ctx xyTyp)
-      | .lt | .le | .gt | .ge | .eq | .neq => do
-        discard $ unify typ .bool
-        return .binOp op (← x.fillHoles ctx xyTyp) (← y.fillHoles ctx xyTyp)
+    | b@(.binOp op x y) => match op with
+      | .add | .mul | .sub | .div => match typ with
+        | .nat | .int => return .binOp op (← x.fillHoles ctx typ) (← y.fillHoles ctx typ)
+        | _ => throw ""
+      | .and | .or => match typ with
+        | .bool => return .binOp op (← x.fillHoles ctx typ) (← y.fillHoles ctx typ)
+        | _ => throw ""
+      | _ => return b
     | .fork a b c =>
       return .fork (← a.fillHoles ctx .bool) (← b.fillHoles ctx typ) (← c.fillHoles ctx typ)
     | .letIn ⟨s, sTyp⟩ v b => do
-      let sTyp ← unify' sTyp [(← v.inferTyp ctx), (← v.getVarTyp s), (← b.getVarTyp s), typ]
+      let sTyp ← unify' sTyp [← v.getVarTyp s, ← b.getVarTyp s, typ]
       let ctx := ctx.insert s sTyp
-      let b ← b.fillHoles ctx sTyp
       let v ← v.fillHoles ctx sTyp
+      let b ← b.fillHoles ctx typ
       return .letIn ⟨s, sTyp⟩ v b
     | .lam ⟨s, sTyp⟩ b => match typ with
       | .pi iTyp oTyp => do
-        let sTyp ← unify' sTyp [iTyp, (← b.getVarTyp s)]
+        let sTyp ← unify' sTyp [iTyp, ← b.getVarTyp s]
         let ctx := ctx.insert s sTyp
-        let bTyp ← unify oTyp (← b.inferTyp ctx)
-        let b ← b.fillHoles ctx bTyp
+        let b ← b.fillHoles ctx oTyp
         return .lam ⟨s, sTyp⟩ b
       | _ => throw ""
-    | x@(.app f a) => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
-      | (.hole, _) => return x
-      | (.pi iTyp oTyp, aTyp) =>
-        let oTyp ← unify oTyp typ
-        let iTyp ← unify iTyp aTyp
-        let a ← a.fillHoles ctx iTyp
-        let f ← f.fillHoles ctx (.pi iTyp oTyp)
-        return .app f a
-      | _ => throw ""
+    | x@(.app ..) => return x
+    -- | x@(.app f a) => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
+    --   | (.hole, _) => return x
+    --   | (.pi iTyp oTyp, aTyp) =>
+    --     let oTyp ← unify oTyp typ
+    --     let iTyp ← unify iTyp aTyp
+    --     let a ← a.fillHoles ctx iTyp
+    --     let f ← f.fillHoles ctx (.pi iTyp oTyp)
+    --     return .app f a
+    --   | _ => throw ""
 
-def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
-  -- | _ => sorry
+partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
   | .lit l => return l.typ
   | .var ⟨s, sTyp⟩ => unify sTyp (ctx.find? s)
   | .unOp op x => match op with
@@ -134,33 +129,31 @@ def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     | .eq | .neq => return .bool
     | .and | .or => unify .bool xyTyp
   | .letIn ⟨s, sTyp⟩ v b => do
-    let sTyp ← unify' sTyp [(← v.inferTyp ctx), (← v.getVarTyp s), (← b.getVarTyp s)]
+    let sTyp ← unify' sTyp [← v.inferTyp ctx, ← v.getVarTyp s, ← b.getVarTyp s]
     let ctx := ctx.insert s sTyp
+    let bTyp ← b.inferTyp ctx
     let v ← v.fillHoles ctx sTyp
-    let sTyp ← unify' sTyp [(← v.getVarTyp s), (← b.getVarTyp s)]
+    let b ← b.fillHoles ctx bTyp
+    let sTyp ← unify' sTyp [← v.inferTyp ctx, ← v.getVarTyp s, ← b.getVarTyp s]
     b.inferTyp $ ctx.insert s sTyp
-  | .lam ⟨s, sTyp⟩ b => do match ← unify sTyp (← b.getVarTyp s) with
-    | .hole =>
-      let bTyp ← b.inferTyp ctx
-      let b ← b.fillHoles ctx bTyp
-      let sTyp ← b.getVarTyp s
-      return .pi sTyp bTyp
-    | sTyp =>
-      let bTyp ← b.inferTyp $ ctx.insert s sTyp
-      return .pi sTyp bTyp
-  | .app f a => do match (← f.inferTyp ctx, ← a.inferTyp ctx) with
-    | (.hole, _)
-    | (.pi _ .hole, _) => pure .hole
-    | (.pi .hole o, _)
-    | (.pi _ o, .hole) => pure o
-    | pi@(.pi iTyp oTyp, aTyp) =>
-      if iTyp == aTyp then return oTyp
-      else throw s!"Type mismatch when applying {aTyp} to pi type {pi}"
-    | (x, _) => throw s!"Expected a pi type but got {x}"
+  | .lam ⟨s, sTyp⟩ b => do
+    let sTyp ← unify sTyp (← b.getVarTyp s)
+    let ctx := ctx.insert s sTyp
+    let bTyp ← b.inferTyp ctx
+    let b ← b.fillHoles ctx bTyp
+    let sTyp ← unify sTyp (← b.getVarTyp s)
+    return .pi sTyp bTyp
+  | .app f a => do
+    let aTyp ← match ← f.inferTyp ctx with
+      | .hole => a.inferTyp ctx
+      | .pi iTyp _ => unify iTyp (← a.inferTyp ctx)
+      | _ => throw ""
+    let f ← f.fillHoles ctx (.pi aTyp .hole)
+    match ← f.inferTyp ctx with
+    | .pi iTyp oTyp => discard $ unify iTyp aTyp; return oTyp
+    | _ => throw ""
   | .fork x a b => do
     discard $ unify .bool (← x.inferTyp ctx)
     unify (← a.inferTyp ctx) (← b.inferTyp ctx)
-
-end
 
 end Vero.Frontend
