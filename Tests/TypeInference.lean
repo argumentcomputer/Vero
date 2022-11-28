@@ -10,23 +10,26 @@ def pairs : List $ Frontend.AST × (Option Typ) := [
   (⟦x + +3⟧, some .int),
   (⟦x + tt⟧, none),
   (⟦ff & tt⟧, some .bool),
-  (⟦f : nat -> int -> nat := n y => n; f⟧,  some ⟪nat -> int -> nat⟫),
-  -- (⟦f : nat -> int -> _ := n y => y; f⟧,  some ⟪nat -> int -> int⟫),
-  (⟦(x : nat) y => x + y⟧, some ⟪nat -> nat -> nat⟫),
-  (⟦f : _ -> _ -> _ := x (y : nat) => x + y; f⟧, some ⟪nat -> nat -> nat⟫),
-  (⟦f x (y : nat) := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
-  (⟦f (x : nat) y := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
-  -- (⟦f := x => x; f @ 3⟧, some ⟪nat⟫),
-  (⟦f : _ -> nat := x => x; f @ 3⟧, some ⟪nat⟫),
-  -- (⟦f : nat -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
-  -- (⟦f : _ -> _ := x => x; f @ 3⟧, some ⟪nat⟫),
-  -- (⟦f : _ := x => x; f @ 3⟧, some ⟪nat⟫),
-  -- (⟦(x => x) @ 1⟧, some ⟪nat⟫),
-  -- (⟦(x (y : int) => x) @ 1⟧, some ⟪int -> nat⟫),
-  (⟦x (f : nat -> int) => f @ x⟧, some ⟪nat -> (nat -> int) -> int⟫)
-  -- (⟦x (f : _ -> int) => f @ (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫),
-  -- TODO : add more tests
+  (⟦(fun x => x) 1⟧, some ⟪nat⟫),
+  (⟦let f : _ -> nat := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦let f : nat -> int -> nat := fun n y => n; f⟧,  some ⟪nat -> int -> nat⟫),
+  (⟦fun (x : nat) y => x + y⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦let f : _ -> _ -> _ := fun x (y : nat) => x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦let f x (y : nat) := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦let f (x : nat) y := x + y; f⟧, some ⟪nat -> nat -> nat⟫),
+  (⟦(fun x (y : int) => x) 1⟧, some ⟪int -> nat⟫),
+  (⟦fun x (f : nat -> int) => f x⟧, some ⟪nat -> (nat -> int) -> int⟫),
+  (⟦fun x (f : _ -> int) => f (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫),
+  (⟦let f : nat -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦let f : nat -> int -> _ := fun n y => y; f⟧,  some ⟪nat -> int -> int⟫)
 ]
+
+-- TODO : fix
+-- def pairs : List $ Frontend.AST × (Option Typ) := [
+--   (⟦let f := fun x => x; f 3⟧, some ⟪nat⟫),
+--   (⟦let f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
+--   (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫)
+-- ]
 
 open LSpec in
 def main := lspecIO $

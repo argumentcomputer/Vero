@@ -82,14 +82,14 @@ scoped syntax:65 ast:65 " | "  ast:66 : ast
 
 -- assignment
 scoped syntax withPosition(
-  var+ colGt " := " colGt ast colGt ";"
+  "let" var+ colGt " := " colGt ast colGt ";"
   colGe ast) : ast
 
 -- anonymous lambda
-scoped syntax withPosition(var+ colGt " => " colGt ast) : ast
+scoped syntax withPosition("fun" var+ colGt " => " colGt ast) : ast
 
 -- application
-scoped syntax ast "@" ast,+ : ast
+scoped syntax:50 ast ast:51 : ast
 
 -- forks
 scoped syntax withPosition(
@@ -133,17 +133,15 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $a >= $b) => do elabBinOp (← elabAST a) (← elabAST b) .ge
   | `(ast| $a & $b)  => do elabBinOp (← elabAST a) (← elabAST b) .and
   | `(ast| $a | $b)  => do elabBinOp (← elabAST a) (← elabAST b) .or
-  | `(ast| $f:ast @ $[$as:ast],*) => do
-    as.foldlM (init := ← elabAST f) fun acc a => do
-      mkAppM ``AST.app #[acc, ← elabAST a]
-  | `(ast| $vs:var* $v:var => $b:ast) => do
+  | `(ast| $f:ast $a:ast) => do mkAppM ``AST.app #[← elabAST f, ← elabAST a]
+  | `(ast| fun $vs:var* $v:var => $b:ast) => do
     let init ← mkAppM ``AST.lam #[← elabVar v, ← elabAST b]
     vs.foldrM (init := init) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
-  | `(ast| $v:var $vs:var* := $val:ast; $b:ast) => do
+  | `(ast| let $v:var $vs:var* := $val:ast; $b:ast) => do
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
-    mkAppM ``AST.letIn #[← elabVar v, lam, ← elabAST b]
+    mkAppM ``AST.app #[← mkAppM ``AST.lam #[← elabVar v, ← elabAST b], lam]
   | `(ast| if $a:ast then $b:ast else $c:ast) => do
     mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
   | `(ast| ($x:ast)) => elabAST x
