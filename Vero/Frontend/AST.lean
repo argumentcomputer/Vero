@@ -96,7 +96,7 @@ partial def AST.fillHoles (ctx : Ctx) : AST → Typ → Except String AST
         return .lam ⟨s, sTyp⟩ b
       | _ => throw ""
     | .app f a => do match ← f.inferTyp ctx with
-      | .hole =>
+      | .hole => -- is this needed?
         let aTyp ← a.inferTyp ctx
         let f ← f.fillHoles ctx (.pi aTyp typ)
         return .app f a
