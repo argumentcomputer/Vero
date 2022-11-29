@@ -9,7 +9,7 @@ def unify : Typ → Typ → Except String Typ
   | .pair x₁ y₁, .pair x₂ y₂ => return .pair (← unify x₁ x₂) (← unify y₁ y₂)
   | x, y => if x == y then pure x else throw s!"Can't unify {x} and {y}"
 
-def unify' (a b c : Typ) : Except String Typ := do
+@[inline] def unify' (a b c : Typ) : Except String Typ := do
   unify (← unify a b) c
 
 def AST.getVarTyp (s : String) : AST → Except String Typ
@@ -72,7 +72,9 @@ partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
 
 partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
   | .lit l => return l.typ
-  | .var ⟨s, sTyp⟩ => unify sTyp (ctx.find? s)
+  | .var ⟨s, sTyp⟩ => match ctx.find? s with
+    | some typ => unify typ sTyp
+    | none => pure sTyp
   | .unOp op x => match op with
     | .neg => do unify .int  (← x.inferTyp ctx)
     | .not => do unify .bool (← x.inferTyp ctx)
@@ -88,6 +90,9 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
       | x => throw s!"Expected nat or int but got {x}"
     | .eq | .neq => return .bool
     | .and | .or => unify .bool xyTyp
+  | .fork x a b => do
+    discard $ unify .bool (← x.inferTyp ctx)
+    unify (← a.inferTyp ctx) (← b.inferTyp ctx)
   | .lam ⟨s, sTyp⟩ b => do
     let sTyp ← unify sTyp (← b.getVarTyp s)
     let ctx := ctx.insert s sTyp
@@ -99,16 +104,12 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     let aTyp ← a.inferTyp ctx
     let (iTyp, oTyp) ← match ← f.inferTyp ctx with
       | .hole => pure (aTyp, .hole)
-      | .pi iTyp oTyp => do
-        pure (← unify aTyp iTyp, oTyp)
+      | .pi iTyp oTyp => pure (← unify aTyp iTyp, oTyp)
       | x => throw s!"Invalid type for app function: {x}"
     let f' ← f.fillHoles (.pi iTyp oTyp) ctx
     let a' ← a.fillHoles iTyp ctx
     if f' != f || a' != a then inferTyp ctx (.app f' a')
     else pure oTyp
-  | .fork x a b => do
-    discard $ unify .bool (← x.inferTyp ctx)
-    unify (← a.inferTyp ctx) (← b.inferTyp ctx)
 
 end
 

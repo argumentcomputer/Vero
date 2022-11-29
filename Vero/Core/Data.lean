@@ -58,7 +58,7 @@ def INT : Int → AST
 
 namespace INT
 
-open PAIR BOOL FLOW
+open PAIR BOOL
 
 def NEG := ⟦λ a. $PROD ($NOT ($FST a)) ($SND a)⟧
 def MUL := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.MUL ($SND a) ($SND b))⟧

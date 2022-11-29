@@ -58,9 +58,9 @@ inductive AST
   | var : Var → AST
   | unOp : UnOp → AST → AST
   | binOp : BinOp → AST → AST → AST
+  | fork : AST → AST → AST → AST
   | lam : Var → AST → AST
   | app : AST → AST → AST
-  | fork : AST → AST → AST → AST
   deriving Ord, Inhabited, BEq
 
 def AST.telescopeLam (acc : Array Var) : AST → (Array Var) × AST
@@ -77,17 +77,17 @@ partial def AST.toString : AST → String
   | .lit $ .int (.negSucc i) => s!"-{i + 1}"
   | .lit $ .bool true  => "tt"
   | .lit $ .bool false => "ff"
-  | .var v => v.toString
-  | .unOp .neg x => s!"- {x.toString}"
-  | .unOp .not x => s!"! {x.toString}"
+  | .var        v => v.toString
+  | .unOp .neg  x => s!"- {x.toString}"
+  | .unOp .not  x => s!"! {x.toString}"
   | .binOp op x y => s!"({x.toString} {op.toString} {y.toString})"
+  | .fork  a  b c => s!"if {a.toString} then {b.toString} else {c.toString}"
   | .lam v b =>
     let (vs, b) := b.telescopeLam #[v]
     s!"fun {" ".intercalate $ vs.data.map Var.toString} => {b.toString}"
   | .app f a =>
     let as := f.telescopeApp [a]
     s!"({" ".intercalate (as.map toString)})"
-  | .fork a b c => s!"if {a.toString} then {b.toString} else {c.toString}"
 
 instance : ToString AST := ⟨AST.toString⟩
 
