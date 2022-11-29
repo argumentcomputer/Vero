@@ -1,5 +1,6 @@
 import LSpec
 import Vero.Frontend.DSL
+import Vero.Frontend.TypeInference
 
 open Vero Frontend.DSL
 
@@ -21,15 +22,11 @@ def pairs : List $ Frontend.AST × (Option Typ) := [
   (⟦fun x (f : nat -> int) => f x⟧, some ⟪nat -> (nat -> int) -> int⟫),
   (⟦fun x (f : _ -> int) => f (x : bool)⟧, some ⟪bool -> (bool -> int) -> int⟫),
   (⟦let f : nat -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
-  (⟦let f : nat -> int -> _ := fun n y => y; f⟧,  some ⟪nat -> int -> int⟫)
+  (⟦let f : nat -> int -> _ := fun n y => y; f⟧,  some ⟪nat -> int -> int⟫),
+  (⟦let f := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦let f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫)
 ]
-
--- TODO : fix
--- def pairs : List $ Frontend.AST × (Option Typ) := [
---   (⟦let f := fun x => x; f 3⟧, some ⟪nat⟫),
---   (⟦let f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
---   (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫)
--- ]
 
 open LSpec in
 def main := lspecIO $

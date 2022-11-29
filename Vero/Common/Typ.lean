@@ -7,7 +7,7 @@ inductive Typ
   | bool
   | pair : Typ → Typ → Typ
   | pi   : Typ → Typ → Typ
-  deriving Ord, BEq, Inhabited, Repr
+  deriving Ord, BEq, Inhabited
 
 instance : Coe (Option Typ) Typ where coe
   | none => .hole
