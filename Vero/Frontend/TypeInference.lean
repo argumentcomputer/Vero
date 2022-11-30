@@ -29,12 +29,11 @@ partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
   | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify typ typ'⟩
   | x@(.lit l) => do discard $ unify typ l.typ; return x
   | .unOp op x => match (op, typ) with
-    | (.neg, .int)  => return .unOp .neg (← x.fillHoles .int ctx)
     | (.not, .bool) => return .unOp .not (← x.fillHoles .bool ctx)
     | _ => throw s!"Type mismatch for unary op {op.toString}: {typ}"
   | b@(.binOp op x y) => match op with
     | .add | .mul | .sub | .div => match typ with
-      | .nat | .int => return .binOp op (← x.fillHoles typ ctx) (← y.fillHoles typ ctx)
+      | .nat => return .binOp op (← x.fillHoles typ ctx) (← y.fillHoles typ ctx)
       | _ => throw s!"Type mismatch for binary op {op.toString}: {typ}"
     | .and | .or => match typ with
       | .bool => return .binOp op (← x.fillHoles .bool ctx) (← y.fillHoles .bool ctx)
@@ -76,20 +75,14 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     | some typ => unify typ sTyp
     | none => pure sTyp
   | .unOp op x => match op with
-    | .neg => do unify .int  (← x.inferTyp ctx)
     | .not => do unify .bool (← x.inferTyp ctx)
   | .binOp op x y => do
     let xyTyp ← unify (← x.inferTyp ctx) (← y.inferTyp ctx)
     match op with
-    | .add | .mul | .sub | .div => match xyTyp with
-      | .nat => return .nat
-      | .int => return .int
-      | x => throw s!"Expected nat or int but got {x}"
-    | .lt | .le | .gt | .ge => match xyTyp with
-      | .nat | .int => return .bool
-      | x => throw s!"Expected nat or int but got {x}"
-    | .eq | .neq => return .bool
-    | .and | .or => unify .bool xyTyp
+    | .add | .mul | .sub | .div => unify .nat xyTyp
+    | .lt  | .le  | .gt  | .ge  => do discard $ unify .nat xyTyp; return .bool
+    | .eq  | .neq => return .bool
+    | .and | .or  => unify .bool xyTyp
   | .fork x a b => do
     discard $ unify .bool (← x.inferTyp ctx)
     unify (← a.inferTyp ctx) (← b.inferTyp ctx)

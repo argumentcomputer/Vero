@@ -6,11 +6,10 @@ namespace Vero.Frontend
 
 /-- Inductive enumerating unary operators -/
 inductive UnOp
-  | neg | not
+  | not
   deriving Ord, BEq
 
 def UnOp.toString : UnOp → String
-  | .neg => "neg"
   | .not => "not"
 
 /-- Inductive enumerating binary operators -/
@@ -35,13 +34,11 @@ def BinOp.toString : BinOp → String
 /-- Inductive enumerating the primitive types -/
 inductive Lit
   | nat  : Nat  → Lit
-  | int  : Int  → Lit
   | bool : Bool → Lit
   deriving Ord, Inhabited, BEq
 
 def Lit.typ : Lit → Typ
   | .nat  _ => .nat
-  | .int  _ => .int
   | .bool _ => .bool
 
 structure Var where
@@ -73,12 +70,9 @@ def AST.telescopeApp (acc : List AST) : AST → List AST
 
 partial def AST.toString : AST → String
   | .lit $ .nat n => ToString.toString n
-  | .lit $ .int (.ofNat   i) => s!"+{i}"
-  | .lit $ .int (.negSucc i) => s!"-{i + 1}"
   | .lit $ .bool true  => "tt"
   | .lit $ .bool false => "ff"
   | .var        v => v.toString
-  | .unOp .neg  x => s!"- {x.toString}"
   | .unOp .not  x => s!"! {x.toString}"
   | .binOp op x y => s!"({x.toString} {op.toString} {y.toString})"
   | .fork  a  b c => s!"if {a.toString} then {b.toString} else {c.toString}"

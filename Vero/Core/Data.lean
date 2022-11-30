@@ -15,6 +15,7 @@ def PRED := ⟦λ n f x. n (λ g h. h (g f)) (λ u. x) (λ u. u)⟧
 def ADD  := ⟦λ m n f x. m f (n f x)⟧
 def MUL  := ⟦λ m n f. m (n f)⟧
 def SUB  := ⟦λ m n. n $PRED m⟧
+def DIV  := ADD -- fix
 -- def DIV  := ⟦λ n. ((λ f. (λ x. x x) (λ x. f (x x)))
 --                     (λ c. λ n. λ m. λ f. λ x.
 --                       (λ d. (λ n. n (λ x. (λ a. λ b. b)) (λ a.λ b. a)) d ((λ f.λ x. x) f x) (f (c d m f x)))
@@ -34,7 +35,9 @@ def XOR   := ⟦λ a b. a ($NOT b) b⟧
 
 def ISZ := ⟦λ n. n (λ x. $FALSE) $TRUE⟧
 def LE  := ⟦λ m n. $ISZ ($NAT.SUB m n)⟧
+def LT  := ⟦λ m n. $ISZ ($NAT.SUB ($NAT.SUCC m) n)⟧
 def EQ  := ⟦λ m n. $AND ($LE m n) ($LE n m)⟧
+def NEQ := ⟦λ m n. $NOT ($AND ($LE m n) ($LE n m))⟧
 
 end BOOL
 

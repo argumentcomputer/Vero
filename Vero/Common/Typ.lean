@@ -3,7 +3,6 @@ namespace Vero
 inductive Typ
   | hole
   | nat
-  | int
   | bool
   | pair : Typ → Typ → Typ
   | pi   : Typ → Typ → Typ
@@ -12,7 +11,6 @@ inductive Typ
 def Typ.toString : Typ → String
   | .hole => "_"
   | .nat  => "nat"
-  | .int  => "int"
   | .bool => "bool"
   | .pair t₁          t₂ => s!"({t₁.toString} . {t₂.toString})"
   | .pi   pi@(.pi ..) t₂ => s!"({pi.toString}) -> {t₂.toString}"

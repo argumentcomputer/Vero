@@ -8,7 +8,6 @@ inductive Value
   | nat  : Nat → Value
   | bool : Bool → Value
   | pair : Value → Value → Value
-  | int  : Int → Value
   deriving Inhabited, BEq
 
 protected def Value.toString : Value → String
@@ -16,7 +15,6 @@ protected def Value.toString : Value → String
   | .nat  n => toString n
   | .bool b => toString b
   | .pair f s => s!"({f.toString} . {s.toString})"
-  | .int  i => toString i
 
 instance : ToString Value := ⟨Value.toString⟩
 
@@ -53,9 +51,6 @@ mutual
       | .error e => .expr e
     | .pair t₁ t₂ => match e.toPair t₁ t₂ with
       | .ok (f, s) => .pair f s
-      | .error e => .expr e
-    | .int => match e.toInt with
-      | .ok i => .int i
       | .error e => .expr e
 
   partial def toPair (a b : Typ) : Expr → Except Expr (Value × Value)

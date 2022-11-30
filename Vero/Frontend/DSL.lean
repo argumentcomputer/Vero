@@ -8,27 +8,16 @@ declare_syntax_cat           lit
 scoped syntax "tt"         : lit
 scoped syntax "ff"         : lit
 scoped syntax num          : lit
-scoped syntax "+" noWs num : lit
-scoped syntax "-" noWs num : lit
-
-def mkApp' (name : Name) (e : Lean.Expr) : Lean.Expr :=
-  mkApp (mkConst name) e
 
 def elabLit : TSyntax `lit → TermElabM Lean.Expr
   | `(lit| tt) => mkAppM ``Lit.bool #[mkConst ``true]
   | `(lit| ff) => mkAppM ``Lit.bool #[mkConst ``false]
   | `(lit| $n:num) => mkAppM ``Lit.nat #[mkNatLit n.getNat]
-  | `(lit| +$n:num) =>
-    mkAppM ``Lit.int #[mkApp' ``Int.ofNat (mkNatLit n.getNat)]
-  | `(lit| -$n:num) => mkAppM ``Lit.int $ match n.getNat with
-    | 0       => #[mkApp' ``Int.ofNat (mkConst ``Nat.zero)]
-    | (n + 1) => #[mkApp' ``Int.negSucc (mkNatLit n)]
   | _ => throwUnsupportedSyntax
 
 declare_syntax_cat             typ
 scoped syntax "_"            : typ
 scoped syntax "nat"          : typ
-scoped syntax "int"          : typ
 scoped syntax "bool"         : typ
 scoped syntax typ " . "  typ : typ
 scoped syntax typ " -> " typ : typ
@@ -37,7 +26,6 @@ scoped syntax "(" typ ")"    : typ
 partial def elabTyp : TSyntax `typ → TermElabM Lean.Expr
   | `(typ| _)    => mkConst ``Typ.hole
   | `(typ| nat)  => mkConst ``Typ.nat
-  | `(typ| int)  => mkConst ``Typ.int
   | `(typ| bool) => mkConst ``Typ.bool
   | `(typ| $t₁:typ . $t₂:typ) => do
     mkAppM ``Typ.pair #[← elabTyp t₁, ← elabTyp t₂]
@@ -65,7 +53,6 @@ partial def elabVar : TSyntax `var → TermElabM Lean.Expr
 declare_syntax_cat  ast
 scoped syntax var : ast
 scoped syntax lit : ast
-scoped syntax " - " ws ast : ast
 scoped syntax " ! " ast : ast
 scoped syntax:50 ast:50 " + "  ast:51 : ast
 scoped syntax:60 ast:60 " * "  ast:61 : ast
@@ -119,7 +106,6 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| ($v:var))
   | `(ast| $v:var) => do mkAppM ``AST.var #[← elabVar v]
   | `(ast| $p:lit) => return ← mkAppM ``AST.lit #[← elabLit p]
-  | `(ast| - $x) => do mkAppM ``AST.unOp #[mkConst ``UnOp.neg , ← elabAST x]
   | `(ast| ! $x) => do mkAppM ``AST.unOp #[mkConst ``UnOp.not , ← elabAST x]
   | `(ast| $a + $b)  => do elabBinOp (← elabAST a) (← elabAST b) .add
   | `(ast| $a * $b)  => do elabBinOp (← elabAST a) (← elabAST b) .mul

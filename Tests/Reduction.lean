@@ -1,30 +1,22 @@
 import LSpec
-import Vero.Core.Data
-import Vero.Common.Value
-import Vero.Scalar.Encoding
-import Vero.Scalar.Decoding
-import Vero.Reduction.Direct
-import Vero.Reduction.Scalar
+import Vero.Frontend.DSL
+import Vero.Reduction.TypedExpr
 
 open Vero
 
-open Core.DSL Core.AST Core.Data in
-def cases : List $ Core.AST × Typ × Value := [
-  (⟦$(NAT 0)⟧, .nat, .nat 0),
-  (⟦$NAT.SUCC $(NAT 5)⟧, .nat, .nat 6),
-  (⟦$NAT.ADD $(NAT 1) $(NAT 2)⟧, .nat, .nat 3),
-  (⟦$NAT.MUL $(NAT 2) $(NAT 3)⟧, .nat, .nat 6)
-  -- TODO : add more tests
+open Frontend.DSL in
+def pairs : List (Frontend.AST × Value) := [
+  (⟦let add x y := x + y; add 3 2⟧, .nat 5),
+  (⟦(fun x => x & tt) ff⟧, .bool false),
+  -- (⟦let div x y := x / y; div 6 3⟧, .nat 2),                -- TODO : div
+  -- (⟦let gap x := if x > 5 then 10 else 1; gap 6⟧, .nat 10), -- FIX  : looping
+  (⟦let f x y := x * y; let f3 := f 3; f3 2⟧, .nat 6)
 ]
 
-open LSpec in
+open LSpec Reduction in
 def main := lspecIO $
-  cases.foldl (init := .done) fun tSeq (ast, type, expec) =>
-    tSeq ++ withExceptOk s!"{ast} converts to Expr" ast.toExpr fun expr =>
-      let red := expr.reduce
-      let got := red.toValueOf type
-      test s!"Expected {expec} equals {got}" (expec == got) ++
-        let (ptr, store) := expr.encode
-        withExceptOk "Scalar reduction succeeds" (Scalar.reduce ptr store) fun (ptr, store) =>
-          withExceptOk "Decoding succeeds" (Scalar.decode ptr store) fun red' =>
-            test s!"Directly reduced {red} equals {red'}" (red == red')
+  pairs.foldl (init := .done) fun tSeq (ast, expectedVal) => tSeq ++
+    withExceptOk s!"TypedExpr of {ast}" (TypedExpr.ofAST ast) fun te =>
+      withExceptOk "Scalar reduction succeeds" te.scalarReduce fun scalarVal =>
+        test "Scalar reduction matches expectation" (scalarVal == expectedVal) ++
+          test "Scalar reduction matches direct reduction" (scalarVal == te.directReduce)
