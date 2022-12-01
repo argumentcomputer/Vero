@@ -28,5 +28,10 @@ def AST.toCore : AST → Core.AST
   | .fork a b c => ⟦$FLOW.FORK $a.toCore $b.toCore $c.toCore⟧
   | .lam v b => .lam v.name b.toCore
   | .app f a => .app f.toCore a.toCore
+  | .rc ⟨s, _⟩ v b =>
+    if v.hasFreeVar s then
+      -- TODO : compile recursion here
+      .app (.lam s b.toCore) v.toCore
+    else .app (.lam s b.toCore) v.toCore
 
 end Vero.Frontend

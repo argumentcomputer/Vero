@@ -28,7 +28,8 @@ def pairs : List $ Frontend.AST × (Option Typ) := [
   (⟦let f : nat -> nat -> _ := fun n y => y; f⟧,  some ⟪nat -> nat -> nat⟫),
   (⟦let f := fun x => x; f 3⟧, some ⟪nat⟫),
   (⟦let f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
-  (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫)
+  (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦rec f : _ -> nat := fun x => f 3; f⟧, some ⟪nat -> nat⟫)
 ]
 
 open LSpec in
