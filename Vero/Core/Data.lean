@@ -8,6 +8,14 @@ def NAT (n : Nat) : AST :=
   let app := nApp ⟦f⟧ ⟦x⟧ n
   ⟦λ f x. $app⟧
 
+namespace FIX
+
+def Y := ⟦λ f. (λ x. f (x x)) (λ x. f (x x))⟧
+def Θ := ⟦(λ x y. y (x x y)) (λ x y. y (x x y))⟧
+def Z := ⟦λ f. (λ x. f (λ v. x x v)) (λ x. f (λ v. x x v))⟧
+
+end FIX
+
 namespace NAT
 
 def SUCC := ⟦λ n f x. f (n f x)⟧

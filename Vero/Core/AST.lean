@@ -6,7 +6,7 @@ inductive AST
   | var : String → AST
   | lam : String → AST → AST
   | app : AST → AST → AST
-  deriving Ord, Inhabited, Repr
+  deriving Ord, Inhabited
 
 def nApp (f a : AST) : Nat → AST
   | 0 => a
@@ -19,20 +19,23 @@ export ToAST (toAST)
 
 instance : ToAST AST := ⟨id⟩
 
-mutual 
-  def AST.toString : AST → String
-    | .var n => n
-    | .lam n b => s!"(λ {n} {b.lamsToString})"
-    | .app (.lam n b) y => s!"(λ {n} {b.lamsToString}) {y.toString}"
-    | .app x y@(.app ..) => s!"{x.toString} ({y.toString})"
-    | .app x@(.app ..) y => s!"{x.toString} {y.toString}"
-    | .app x y => s!"{x.toString} {y.toString}"
+def AST.telescopeLam (acc : Array String) : AST → (Array String) × AST
+  | .lam n b => b.telescopeLam $ acc.push n
+  | x => (acc, x)
 
-  def AST.lamsToString : AST → String
-    | .lam n b@(.lam ..) => s!"{n} {b.lamsToString}"
-    | .lam n b => s!"{n}. {b.toString}"
-    | x => s!"{x.toString}"
-end
+def AST.telescopeApp (acc : List AST) : AST → List AST
+  | .app f a => f.telescopeApp (a :: acc)
+  | x => x :: acc
+
+partial def AST.toString : AST → String
+  | .var n => n
+  | .lam n b =>
+    let (ns, b) := b.telescopeLam #[n]
+    s!"(λ {" ".intercalate ns.data}. {b.toString})"
+  | .app f a@(.app ..) => s!"{f.toString} ({a.toString})"
+  | .app f a =>
+    let as := f.telescopeApp [a]
+    s!"{" ".intercalate (as.map toString)}"
 
 instance : ToString AST where 
   toString := AST.toString
