@@ -28,8 +28,8 @@ def SUCC := ⟦λ n z s. s n⟧
 
 -- Functions on Nat
 def PRED := ⟦λ n. n $ZERO (λ pred. pred)⟧
-def ADD  := FIX.fix ⟦λ add n. n (λ m. m) (λ pred m. add pred (succ m))⟧
-def MUL  := FIX.fix ⟦λ mul n. n (λ m. m) (λ pred m. $ADD m (mul pred m))⟧
+def ADD  := FIX.fix ⟦λ add n. n (λ m. m) (λ pred m. add pred ($SUCC m))⟧
+def MUL  := FIX.fix ⟦λ mul n. n (λ m. $ZERO) (λ pred m. $ADD m (mul pred m))⟧
 def SUB  := FIX.fix ⟦λ sub n m. m n (λ pred. sub ($PRED n) pred)⟧
 def DIV : AST := ⟦srry⟧
 
