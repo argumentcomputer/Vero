@@ -125,9 +125,8 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $a & $b)  => do elabBinOp (← elabAST a) (← elabAST b) .and
   | `(ast| $a | $b)  => do elabBinOp (← elabAST a) (← elabAST b) .or
   | `(ast| $f:ast $a:ast) => do mkAppM ``AST.app #[← elabAST f, ← elabAST a]
-  | `(ast| fun $vs:var* $v:var => $b:ast) => do
-    let init ← mkAppM ``AST.lam #[← elabVar v, ← elabAST b]
-    vs.foldrM (init := init) fun v acc => do
+  | `(ast| fun $vs:var* => $b:ast) => do
+    vs.foldrM (init := ← elabAST b) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
   | `(ast| let $v:var $vs:var* := $val:ast; $b:ast) => do
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do

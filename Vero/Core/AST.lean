@@ -33,7 +33,7 @@ partial def toString : AST → String
   | .app f a@(.app ..) => s!"{f.toString} ({a.toString})"
   | .app f a =>
     let as := f.telescopeApp [a]
-    s!"{" ".intercalate (as.map toString)}"
+    s!"({" ".intercalate (as.map toString)})"
 
 instance : ToString AST where 
   toString := AST.toString

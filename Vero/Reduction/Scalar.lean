@@ -67,11 +67,6 @@ partial def reduceM (ptr : Ptr) : ReduceM Ptr := do
   | some ptr => pure ptr
   | none =>
     let ptr' ← match ptr.tag with
-      -- | .var => pure ptr
-      -- | .lam =>
-      --   let b ← getLamBody ptr
-      --   let b ← reduceM b
-      --   addExprHash ⟨.lam, hashPtr b⟩ (.lam b)
       | .var
       | .lam => pure ptr
       | .app =>

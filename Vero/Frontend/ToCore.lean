@@ -14,21 +14,31 @@ def AST.toCore : AST → Core.AST
   | .binOp .mul (.lit $ .nat x) (.lit $ .nat y) => NAT (x * y)
   | .binOp .sub (.lit $ .nat x) (.lit $ .nat y) => NAT (x - y)
   | .binOp .div (.lit $ .nat x) (.lit $ .nat y) => NAT (x / y)
+  -- neutral arithmetics
   | .binOp .add (.lit $ .nat 0) x
   | .binOp .add x (.lit $ .nat 0)
+  | .binOp .mul (.lit $ .nat 1) x
+  | .binOp .mul x (.lit $ .nat 1)
+  | .binOp .div x (.lit $ .nat 1)
   | .binOp .sub (.lit $ .nat 0) x
   | .binOp .sub x (.lit $ .nat 0) => x.toCore
+  -- neighbors arithmetics
   | .binOp .add (.lit $ .nat 1) x
   | .binOp .add x (.lit $ .nat 1) => ⟦$NAT.SUCC $x.toCore⟧
   | .binOp .sub x (.lit $ .nat 1) => ⟦$NAT.PRED $x.toCore⟧
+  -- always zero
+  | .binOp .div (.lit $ .nat 0) _
+  | .binOp .div _ (.lit $ .nat 0) -- trash value
   | .binOp .mul (.lit $ .nat 0) _
   | .binOp .mul _ (.lit $ .nat 0) => NAT.ZERO
+  | .binOp .sub x y =>
+    if x == y then NAT.ZERO else ⟦$NAT.SUB $x.toCore $y.toCore⟧
   | .binOp op x y =>
     let (x, y) := (x.toCore, y.toCore)
     match op with
     | .add => ⟦$NAT.ADD  $x $y⟧
     | .mul => ⟦$NAT.MUL  $x $y⟧
-    | .sub => ⟦$NAT.SUB  $x $y⟧
+    | .sub => unreachable!
     | .div => ⟦$NAT.DIV  $x $y⟧
     | .eq  => ⟦$BOOL.EQ  $x $y⟧
     | .neq => ⟦$BOOL.NEQ $x $y⟧
@@ -39,10 +49,11 @@ def AST.toCore : AST → Core.AST
     | .and => ⟦$BOOL.AND $x $y⟧
     | .or  => ⟦$BOOL.OR  $x $y⟧
   | .fork a b c =>
-    let b := Core.AST.lam "$" b.toCore
-    let c := Core.AST.lam "$" c.toCore
-    .app ⟦$FLOW.FORK $a.toCore $b $c⟧ (.var "$")
+    let b := Core.AST.lam "ζ" b.toCore
+    let c := Core.AST.lam "ζ" c.toCore
+    .app ⟦$FLOW.FORK $a.toCore $b $c⟧ (.var "ζ")
   | .lam v b => .lam v.name b.toCore
+  | .app (.lam ⟨s, _⟩ (.var ⟨s', _⟩)) x => if s == s' then x.toCore else .var s'
   | .app f a => .app f.toCore a.toCore
   | .rc ⟨s, _⟩ v b =>
     if v.hasFreeVar s then .app (.lam s b.toCore) (FIX $ .lam s v.toCore)
