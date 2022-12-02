@@ -22,7 +22,7 @@ def PRED := ⟦λ n. n $ZERO (λ pred. pred)⟧
 def ADD  := FIX ⟦λ add n. n (λ m. m) (λ pred m. add pred ($SUCC m))⟧
 def MUL  := FIX ⟦λ mul n. n (λ m. $ZERO) (λ pred m. $ADD m (mul pred m))⟧
 def SUB  := FIX ⟦λ sub n m. m n (λ pred. sub ($PRED n) pred)⟧
-def DIV  := ⟦srry⟧
+def DIV  := ⟦λ n d. (λ aux. (aux n d (λ z s. z))) (((λ f. ((λ x. (f (λ v. (x x v)))) (λ x. (f (λ v. (x x v)))))) (λ aux n d acc. ((λ p a b. (p a b)) ((λ m n. (λ n. (n (λ x y. x) (λ x x y. y))) (((λ f. ((λ x. (f (λ v. (x x v)))) (λ x. (f (λ v. (x x v)))))) (λ sub n m. (m n (λ pred. (sub ((λ n. (n (λ z s. z) (λ pred. pred))) n) pred)))) ((λ n z s. (s n)) m) n))) n d) (λ ζ. acc) (λ ζ. (aux ((λ f. ((λ x. (f (λ v. (x x v)))) (λ x. (f (λ v. (x x v)))))) (λ sub n m. (m n (λ pred. (sub ((λ n. (n (λ z s. z) (λ pred. pred))) n) pred)))) n d) d) (((λ n z s. (s n)) acc))) ζ))))⟧
 
 end NAT
 
