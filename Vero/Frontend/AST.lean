@@ -58,17 +58,30 @@ inductive AST
   | fork : AST → AST → AST → AST
   | lam : Var → AST → AST
   | app : AST → AST → AST
+  | rc : Var → AST → AST → AST
   deriving Ord, Inhabited, BEq
 
-def AST.telescopeLam (acc : Array Var) : AST → (Array Var) × AST
+namespace AST
+
+def hasFreeVar (s : String) : AST → Bool
+  | .lit _ => false
+  | .var ⟨s', _⟩ => s == s'
+  | .unOp _ x => x.hasFreeVar s
+  | .binOp _ x y => x.hasFreeVar s || y.hasFreeVar s
+  | .fork x y z => x.hasFreeVar s || y.hasFreeVar s || z.hasFreeVar s
+  | .lam ⟨s', _⟩ b => if s == s' then false else b.hasFreeVar s
+  | .app x y => x.hasFreeVar s || y.hasFreeVar s
+  | .rc ⟨s', _⟩ v b => if s == s' then false else v.hasFreeVar s || b.hasFreeVar s
+
+def telescopeLam (acc : Array Var) : AST → (Array Var) × AST
   | .lam v b => b.telescopeLam $ acc.push v
   | x => (acc, x)
 
-def AST.telescopeApp (acc : List AST) : AST → List AST
+def telescopeApp (acc : List AST) : AST → List AST
   | .app f a => f.telescopeApp (a :: acc)
   | x => x :: acc
 
-partial def AST.toString : AST → String
+partial def toString : AST → String
   | .lit $ .nat n => ToString.toString n
   | .lit $ .bool true  => "tt"
   | .lit $ .bool false => "ff"
@@ -78,11 +91,15 @@ partial def AST.toString : AST → String
   | .fork  a  b c => s!"if {a.toString} then {b.toString} else {c.toString}"
   | .lam v b =>
     let (vs, b) := b.telescopeLam #[v]
-    s!"fun {" ".intercalate $ vs.data.map Var.toString} => {b.toString}"
+    s!"(fun {" ".intercalate $ vs.data.map Var.toString} => {b.toString})"
+  | .app f a@(.app ..) => s!"{f.toString} ({a.toString})"
   | .app f a =>
     let as := f.telescopeApp [a]
     s!"({" ".intercalate (as.map toString)})"
+  | .rc v val b => s!"rec {v.toString} := {val.toString}; {b.toString}"
 
 instance : ToString AST := ⟨AST.toString⟩
+
+end AST
 
 end Vero.Frontend

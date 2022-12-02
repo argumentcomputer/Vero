@@ -21,13 +21,11 @@ instance : ToString Value := ⟨Value.toString⟩
 namespace Expr
 
 def toNat (e : Expr) : Except Expr Nat :=
-  let rec countApps : Expr → Except Expr Nat
-    | var 0 => return 0
-    | app (var 1) x => return 1 + (← countApps x)
+  let rec countSucc (n : Nat) : Expr → Except Expr Nat
+    | lam (lam (var 1)) => return n
+    | lam (lam (app (var 0) x)) => countSucc (n+1) x
     | x => throw x
-  match e with
-  | lam (lam x) => countApps x
-  | x => throw x
+  countSucc 0 e
 
 def toBool : Expr → Except Expr Bool
   | lam (lam (var 0)) => return false

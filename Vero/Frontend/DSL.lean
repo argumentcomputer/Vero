@@ -72,6 +72,11 @@ scoped syntax withPosition(
   "let" var+ colGt " := " colGt ast colGt ";"
   colGe ast) : ast
 
+-- recursive assignment
+scoped syntax withPosition(
+  "rec" var+ colGt " := " colGt ast colGt ";"
+  colGe ast) : ast
+
 -- anonymous lambda
 scoped syntax withPosition("fun" var+ colGt " => " colGt ast) : ast
 
@@ -128,6 +133,10 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
     mkAppM ``AST.app #[← mkAppM ``AST.lam #[← elabVar v, ← elabAST b], lam]
+  | `(ast| rec $v:var $vs:var* := $val:ast; $b:ast) => do
+    let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
+      mkAppM ``AST.lam #[← elabVar v, acc]
+    mkAppM ``AST.rc #[← elabVar v, lam, ← elabAST b]
   | `(ast| if $a:ast then $b:ast else $c:ast) => do
     mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
   | `(ast| ($x:ast)) => elabAST x

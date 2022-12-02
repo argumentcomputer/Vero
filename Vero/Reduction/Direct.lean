@@ -20,7 +20,7 @@ partial def reduce : Expr → Expr
   | .app fnc arg => match reduce fnc with
     | .lam bod => reduce (subst 0 arg.reduce bod)
     | fnc' => .app fnc' arg.reduce
-  | .lam b => .lam $ reduce b
+  -- | .lam b => .lam $ reduce b
   | x => x
 
 end Vero.Expr

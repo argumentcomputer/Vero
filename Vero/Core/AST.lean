@@ -6,11 +6,7 @@ inductive AST
   | var : String → AST
   | lam : String → AST → AST
   | app : AST → AST → AST
-  deriving Ord, Inhabited, Repr
-
-def nApp (f a : AST) : Nat → AST
-  | 0 => a
-  | n + 1 => .app f (nApp f a n)
+  deriving Ord, Inhabited
 
 class ToAST (α : Type _) where
   toAST : α → AST
@@ -19,25 +15,30 @@ export ToAST (toAST)
 
 instance : ToAST AST := ⟨id⟩
 
-mutual 
-  def AST.toString : AST → String
-    | .var n => n
-    | .lam n b => s!"(λ {n} {b.lamsToString})"
-    | .app (.lam n b) y => s!"(λ {n} {b.lamsToString}) {y.toString}"
-    | .app x y@(.app ..) => s!"{x.toString} ({y.toString})"
-    | .app x@(.app ..) y => s!"{x.toString} {y.toString}"
-    | .app x y => s!"{x.toString} {y.toString}"
+namespace AST
 
-  def AST.lamsToString : AST → String
-    | .lam n b@(.lam ..) => s!"{n} {b.lamsToString}"
-    | .lam n b => s!"{n}. {b.toString}"
-    | x => s!"{x.toString}"
-end
+def telescopeLam (acc : Array String) : AST → (Array String) × AST
+  | .lam n b => b.telescopeLam $ acc.push n
+  | x => (acc, x)
+
+def telescopeApp (acc : List AST) : AST → List AST
+  | .app f a => f.telescopeApp (a :: acc)
+  | x => x :: acc
+
+partial def toString : AST → String
+  | .var n => n
+  | .lam n b =>
+    let (ns, b) := b.telescopeLam #[n]
+    s!"(λ {" ".intercalate ns.data}. {b.toString})"
+  | .app f a@(.app ..) => s!"{f.toString} ({a.toString})"
+  | .app f a =>
+    let as := f.telescopeApp [a]
+    s!"{" ".intercalate (as.map toString)}"
 
 instance : ToString AST where 
   toString := AST.toString
 
-def AST.freeVars :=
+def freeVars : AST → List String :=
   let rec aux (ctx fs : List String) : AST → List String
   | var n => if !ctx.contains n && !fs.contains n then n::fs else fs
   | lam n b => aux (n::ctx) fs b
@@ -48,7 +49,7 @@ private def idxFrom (i : Nat) (nam : String) : List String → Option Nat
   | n::ns => if n == nam then .some i else idxFrom (i + 1) nam ns
   | [] => .none
 
-def AST.toExpr (x : AST) : Except String Expr :=
+def toExpr (x : AST) : Except String Expr :=
   let rec aux (ctx fs : List String) : AST → Except String Expr
   | var n => match idxFrom 0 n ctx with
     | some i => return .var i
@@ -58,5 +59,7 @@ def AST.toExpr (x : AST) : Except String Expr :=
   | lam n b => return .lam (← aux (n::ctx) fs b)
   | app x y => return .app (← aux ctx fs x) (← aux ctx fs y)
   aux [] x.freeVars x
+
+end AST
 
 end Vero.Core
