@@ -12,9 +12,7 @@ mutual
   def toString : Expr → String
     | .var i => s!"{i}"
     | .lam b => s!"(λ {b.lamsToString})"
-    | .app (.lam b) y => s!"(λ {b.lamsToString}) {y.toString}"
     | .app x y@(.app ..) => s!"{x.toString} ({y.toString})"
-    | .app x@(.app ..) y => s!"{x.toString} {y.toString}"
     | .app x y => s!"{x.toString} {y.toString}"
 
   def lamsToString : Expr → String

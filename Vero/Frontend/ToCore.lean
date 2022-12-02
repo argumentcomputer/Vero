@@ -25,13 +25,14 @@ def AST.toCore : AST → Core.AST
     | .ge  => ⟦$BOOL.LE  $y $x⟧
     | .and => ⟦$BOOL.AND $x $y⟧
     | .or  => ⟦$BOOL.OR  $x $y⟧
-  | .fork a b c => ⟦$FLOW.FORK $a.toCore $b.toCore $c.toCore⟧
+  | .fork a b c =>
+    let b := Core.AST.lam "$" b.toCore
+    let c := Core.AST.lam "$" c.toCore
+    .app ⟦$FLOW.FORK $a.toCore $b $c⟧ (.var "$")
   | .lam v b => .lam v.name b.toCore
   | .app f a => .app f.toCore a.toCore
   | .rc ⟨s, _⟩ v b =>
-    if v.hasFreeVar s then
-      -- TODO : compile recursion here
-      .app (.lam s b.toCore) v.toCore
+    if v.hasFreeVar s then .app (.lam s b.toCore) (.app FIX.Z (.lam s v.toCore))
     else .app (.lam s b.toCore) v.toCore
 
 end Vero.Frontend
