@@ -8,10 +8,6 @@ inductive AST
   | app : AST → AST → AST
   deriving Ord, Inhabited
 
-def nApp (f a : AST) : Nat → AST
-  | 0 => a
-  | n + 1 => .app f (nApp f a n)
-
 class ToAST (α : Type _) where
   toAST : α → AST
 

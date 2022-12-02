@@ -4,9 +4,11 @@ namespace Vero.Core.Data
 
 open DSL
 
-def NAT (n : Nat) : AST :=
-  let app := nApp ⟦f⟧ ⟦x⟧ n
-  ⟦λ f x. $app⟧
+def NAT : (n : Nat) → AST
+| 0 => ⟦λ z s. z⟧
+| n+1 =>
+  let pred := NAT n
+  ⟦λ z s. s $pred⟧
 
 namespace FIX
 
@@ -14,20 +16,22 @@ def Y := ⟦λ f. (λ x. f (x x)) (λ x. f (x x))⟧
 def Θ := ⟦(λ x y. y (x x y)) (λ x y. y (x x y))⟧
 def Z := ⟦λ f. (λ x. f (λ v. x x v)) (λ x. f (λ v. x x v))⟧
 
+def fix (expr : AST) : AST := .app Z expr
+
 end FIX
 
 namespace NAT
 
-def SUCC := ⟦λ n f x. f (n f x)⟧
-def PRED := ⟦λ n f x. n (λ g h. h (g f)) (λ u. x) (λ u. u)⟧
-def ADD  := ⟦λ m n f x. m f (n f x)⟧
-def MUL  := ⟦λ m n f. m (n f)⟧
-def SUB  := ⟦λ m n. n $PRED m⟧
-def DIV  := ⟦λ n. ((λ f. (λ x. x x) (λ x. f (x x)))
-                    (λ c. λ n. λ m. λ f. λ x.
-                      (λ d. (λ n. n (λ x. (λ a. λ b. b)) (λ a.λ b. a)) d ((λ f.λ x. x) f x) (f (c d m f x)))
-                      ((λ m. λ n. n (λ n. λ f. λ x. n (λ g.λ h. h (g f)) (λ u. x) (λ u. u)) m) n m)))
-                  ((λ n. λ f. λ x. f (n f x)) n)⟧
+-- Constructors
+def ZERO := ⟦λ z s. z⟧
+def SUCC := ⟦λ n z s. s n⟧
+
+-- Functions on Nat
+def PRED := ⟦λ n. n $ZERO (λ pred. pred)⟧
+def ADD  := FIX.fix ⟦λ add n. n (λ m. m) (λ pred m. add pred (succ m))⟧
+def MUL  := FIX.fix ⟦λ mul n. n (λ m. m) (λ pred m. $ADD m (mul pred m))⟧
+def SUB  := FIX.fix ⟦λ sub n m. m n (λ pred. sub ($PRED n) pred)⟧
+def DIV : AST := ⟦srry⟧
 
 end NAT
 
@@ -40,7 +44,7 @@ def OR    := ⟦λ p q. p p q⟧
 def NOT   := ⟦λ p a b. p b a⟧
 def XOR   := ⟦λ a b. a ($NOT b) b⟧
 
-def ISZ := ⟦λ n. n (λ x. $FALSE) $TRUE⟧
+def ISZ := ⟦λ n. n $TRUE (λ x. $FALSE)⟧
 def LE  := ⟦λ m n. $ISZ ($NAT.SUB m n)⟧
 def LT  := ⟦λ m n. $ISZ ($NAT.SUB ($NAT.SUCC m) n)⟧
 def EQ  := ⟦λ m n. $AND ($LE m n) ($LE n m)⟧

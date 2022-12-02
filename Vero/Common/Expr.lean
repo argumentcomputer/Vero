@@ -10,7 +10,7 @@ namespace Expr
 
 mutual 
   def toString : Expr → String
-    | .var i => s!"{i}"
+    | .var i => s!"#{i}"
     | .lam b => s!"(λ {b.lamsToString})"
     | .app x y@(.app ..) => s!"{x.toString} ({y.toString})"
     | .app x y => s!"{x.toString} {y.toString}"
