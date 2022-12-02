@@ -40,7 +40,7 @@ def OR    := ⟦λ p q. p p q⟧
 def NOT   := ⟦λ p a b. p b a⟧
 def XOR   := ⟦λ a b. a ($NOT b) b⟧
 
-def ISZ := ⟦λ n. n $FALSE $TRUE⟧
+def ISZ := ⟦λ n. n (λ x. $FALSE) $TRUE⟧
 def LE  := ⟦λ m n. $ISZ ($NAT.SUB m n)⟧
 def LT  := ⟦λ m n. $ISZ ($NAT.SUB ($NAT.SUCC m) n)⟧
 def EQ  := ⟦λ m n. $AND ($LE m n) ($LE n m)⟧
