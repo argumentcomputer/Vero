@@ -55,6 +55,7 @@ def AST.toCore : AST → Core.AST
   | .lam v b => .lam v.name b.toCore
   | .app (.lam ⟨s, _⟩ (.var ⟨s', _⟩)) x => if s == s' then x.toCore else .var s'
   | .app f a => .app f.toCore a.toCore
+  | .lt ⟨s, _⟩ v b => .app (.lam s b.toCore) v.toCore
   | .rc ⟨s, _⟩ v b =>
     if v.hasFreeVar s then .app (.lam s b.toCore) (FIX $ .lam s v.toCore)
     else .app (.lam s b.toCore) v.toCore

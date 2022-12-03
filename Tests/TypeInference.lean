@@ -29,7 +29,11 @@ def pairs : List $ Frontend.AST × (Option Typ) := [
   (⟦let f := fun x => x; f 3⟧, some ⟪nat⟫),
   (⟦let f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
   (⟦let f : _ := fun x => x; f 3⟧, some ⟪nat⟫),
-  (⟦rec f : _ -> nat := fun x => f 3; f⟧, some ⟪nat -> nat⟫)
+  (⟦rec f := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦rec f : _ -> _ := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦rec f : _ := fun x => x; f 3⟧, some ⟪nat⟫),
+  (⟦rec f : _ -> nat := fun x => f 3; f⟧, some ⟪nat -> nat⟫),
+  (⟦let x := 3; let x := tt; x⟧, some .bool)
 ]
 
 open LSpec in
@@ -40,3 +44,4 @@ def main := lspecIO $
         withExceptOk "Type inference succeeds" ast.inferTyp fun gotTyp =>
           test s!"Expected {expecTyp} equals {gotTyp}" (expecTyp == gotTyp)
       | none => withExceptError "Type inference fails" ast.inferTyp fun _ => .done
+#eval main

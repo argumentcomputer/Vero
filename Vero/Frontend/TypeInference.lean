@@ -15,20 +15,31 @@ def unify2 : Typ → Typ → Except String Typ
 @[inline] def unify4 (a b c d : Typ) : Except String Typ := do
   unify2 (← unify2 (← unify2 a b) c) d
 
-def AST.getVarTyp (s : String) : AST → Except String Typ
-  | .var ⟨s', typ⟩ => if s == s' then pure typ else pure .hole
-  | .lit .. => pure .hole
-  | .unOp _ x => x.getVarTyp s
-  | .binOp _ x y => do unify2 (← x.getVarTyp s) (← y.getVarTyp s)
-  | .lam ⟨s', _⟩ b => if s == s' then pure .hole else b.getVarTyp s
-  | .app f a => do unify2 (← f.getVarTyp s) (← a.getVarTyp s)
-  | .fork a b c => do unify3 (← a.getVarTyp s) (← b.getVarTyp s) (← c.getVarTyp s)
-  | .rc ⟨s', _⟩ v b =>
-    if s == s' then pure .hole else do unify2 (← v.getVarTyp s) (← b.getVarTyp s)
-
 abbrev Ctx := Std.RBMap String Typ compare
 
 mutual
+
+partial def AST.getVarTyp (s : String) (ctx : Ctx) : AST → Except String Typ
+  | .var ⟨s', typ⟩ => if s == s' then pure typ else pure .hole
+  | .lit .. => pure .hole
+  | .unOp _ x => x.getVarTyp s ctx
+  | .binOp _ x y => do unify2 (← x.getVarTyp s ctx) (← y.getVarTyp s ctx)
+  | .lam ⟨s', _⟩ b => if s == s' then pure .hole else b.getVarTyp s ctx
+  | .app (.var ⟨s', typ⟩) a =>
+    if s == s' then do unify2 typ (.pi (← a.inferTyp ctx) .hole)
+    else a.getVarTyp s ctx
+  | .app f (.var ⟨s', typ⟩) =>
+    if s == s' then do match ← f.inferTyp ctx with
+      | .hole => return typ
+      | .pi iTyp _ => unify2 iTyp typ
+      | x => throw s!"Invalid type for app function: {x}"
+    else f.getVarTyp s ctx
+  | .app f a => do unify2 (← f.getVarTyp s ctx) (← a.getVarTyp s ctx)
+  | .fork a b c => do unify3 (← a.getVarTyp s ctx) (← b.getVarTyp s ctx) (← c.getVarTyp s ctx)
+  | .lt ⟨s', _⟩ v b => do
+    unify2 (← v.getVarTyp s ctx) (if s == s' then .hole else ← b.getVarTyp s ctx)
+  | .rc ⟨s', _⟩ v b =>
+    if s == s' then pure .hole else do unify2 (← v.getVarTyp s ctx) (← b.getVarTyp s ctx)
 
 partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
   | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify2 typ typ'⟩
@@ -48,17 +59,17 @@ partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
     return .fork (← a.fillHoles .bool ctx) (← b.fillHoles typ ctx) (← c.fillHoles typ ctx)
   | .lam ⟨s, sTyp⟩ b => match typ with
     | .hole => do
-      let sTyp ← unify2 sTyp (← b.getVarTyp s)
+      let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
       let ctx := ctx.insert s sTyp
       let b ← b.fillHoles (← b.inferTyp ctx) ctx
-      let sTyp ← unify2 sTyp (← b.getVarTyp s)
+      let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
       return .lam ⟨s, sTyp⟩ b
     | .pi iTyp oTyp => do
-      let sTyp ← unify3 sTyp iTyp (← b.getVarTyp s)
+      let sTyp ← unify3 sTyp iTyp (← b.getVarTyp s ctx)
       let ctx := ctx.insert s sTyp
       let oTyp ← unify2 oTyp (← b.inferTyp ctx)
       let b ← b.fillHoles oTyp ctx
-      let sTyp ← unify2 sTyp (← b.getVarTyp s)
+      let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
       return .lam ⟨s, sTyp⟩ b
     | _ => throw s!"Invalid type for lam: {typ}"
   | .app f a => do match ← f.inferTyp ctx with
@@ -73,12 +84,21 @@ partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
       let a ← a.fillHoles iTyp ctx
       return .app f a
     | x => throw s!"Invalid type for app function: {x}"
-  | .rc ⟨s, sTyp⟩ v b => do
-    let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s) (← b.getVarTyp s)
+  | .lt ⟨s, sTyp⟩ v b => do
+    let sTyp ← unify3 sTyp (← v.inferTyp ctx) (← b.getVarTyp s ctx)
     let ctx := ctx.insert s sTyp
     let bTyp ← unify2 typ (← b.inferTyp ctx)
     let b ← b.fillHoles bTyp ctx
-    let sTyp ← unify2 sTyp (← b.getVarTyp s)
+    let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
+    let ctx := ctx.insert s sTyp
+    let v ← v.fillHoles sTyp ctx
+    return .lt ⟨s, sTyp⟩ v b
+  | .rc ⟨s, sTyp⟩ v b => do
+    let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s ctx) (← b.getVarTyp s ctx)
+    let ctx := ctx.insert s sTyp
+    let bTyp ← unify2 typ (← b.inferTyp ctx)
+    let b ← b.fillHoles bTyp ctx
+    let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
     let ctx := ctx.insert s sTyp
     let v ← v.fillHoles sTyp ctx
     return .rc ⟨s, sTyp⟩ v b
@@ -101,11 +121,11 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     discard $ unify2 .bool (← x.inferTyp ctx)
     unify2 (← a.inferTyp ctx) (← b.inferTyp ctx)
   | .lam ⟨s, sTyp⟩ b => do
-    let sTyp ← unify2 sTyp (← b.getVarTyp s)
+    let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
     let ctx := ctx.insert s sTyp
     let bTyp ← b.inferTyp ctx
     let b ← b.fillHoles bTyp ctx
-    let sTyp ← unify2 sTyp (← b.getVarTyp s)
+    let sTyp ← unify2 sTyp (← b.getVarTyp s ctx)
     return .pi sTyp bTyp
   | .app f a => do
     let aTyp ← a.inferTyp ctx
@@ -117,11 +137,17 @@ partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
     let a' ← a.fillHoles iTyp ctx
     if f' != f || a' != a then inferTyp ctx (.app f' a')
     else pure oTyp
-  | .rc ⟨s, sTyp⟩ v b => do
-    let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s) (← b.getVarTyp s)
+  | .lt ⟨s, sTyp⟩ v b => do
+    let sTyp ← unify3 sTyp (← v.inferTyp ctx) (← b.getVarTyp s ctx)
     let ctx := ctx.insert s sTyp
     let v ← v.fillHoles sTyp ctx
-    let sTyp ← unify3 sTyp (← v.inferTyp ctx) (← v.getVarTyp s)
+    let sTyp ← unify2 sTyp (← v.inferTyp ctx)
+    b.inferTyp $ ctx.insert s sTyp
+  | .rc ⟨s, sTyp⟩ v b => do
+    let sTyp ← unify4 sTyp (← v.inferTyp ctx) (← v.getVarTyp s ctx) (← b.getVarTyp s ctx)
+    let ctx := ctx.insert s sTyp
+    let v ← v.fillHoles sTyp ctx
+    let sTyp ← unify3 sTyp (← v.inferTyp ctx) (← v.getVarTyp s ctx)
     b.inferTyp $ ctx.insert s sTyp
 
 end

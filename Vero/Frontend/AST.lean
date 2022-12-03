@@ -58,6 +58,7 @@ inductive AST
   | fork : AST → AST → AST → AST
   | lam : Var → AST → AST
   | app : AST → AST → AST
+  | lt : Var → AST → AST → AST
   | rc : Var → AST → AST → AST
   deriving Ord, Inhabited, BEq
 
@@ -69,9 +70,10 @@ def hasFreeVar (s : String) : AST → Bool
   | .unOp _ x => x.hasFreeVar s
   | .binOp _ x y => x.hasFreeVar s || y.hasFreeVar s
   | .fork x y z => x.hasFreeVar s || y.hasFreeVar s || z.hasFreeVar s
-  | .lam ⟨s', _⟩ b => if s == s' then false else b.hasFreeVar s
+  | .lam ⟨s', _⟩ b => s != s' && b.hasFreeVar s
   | .app x y => x.hasFreeVar s || y.hasFreeVar s
-  | .rc ⟨s', _⟩ v b => if s == s' then false else v.hasFreeVar s || b.hasFreeVar s
+  | .lt ⟨s', _⟩ v b => v.hasFreeVar s || (s != s' && b.hasFreeVar s)
+  | .rc ⟨s', _⟩ v b => s == s' && (v.hasFreeVar s || b.hasFreeVar s)
 
 def telescopeLam (acc : Array Var) : AST → (Array Var) × AST
   | .lam v b => b.telescopeLam $ acc.push v
@@ -96,6 +98,7 @@ partial def toString : AST → String
   | .app f a =>
     let as := f.telescopeApp [a]
     s!"({" ".intercalate (as.map toString)})"
+  | .lt v val b => s!"let {v.toString} := {val.toString}; {b.toString}"
   | .rc v val b => s!"rec {v.toString} := {val.toString}; {b.toString}"
 
 instance : ToString AST := ⟨AST.toString⟩

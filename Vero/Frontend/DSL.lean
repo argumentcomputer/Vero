@@ -124,6 +124,8 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| $a >= $b) => do elabBinOp (← elabAST a) (← elabAST b) .ge
   | `(ast| $a & $b)  => do elabBinOp (← elabAST a) (← elabAST b) .and
   | `(ast| $a | $b)  => do elabBinOp (← elabAST a) (← elabAST b) .or
+  | `(ast| if $a:ast then $b:ast else $c:ast) => do
+    mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
   | `(ast| $f:ast $a:ast) => do mkAppM ``AST.app #[← elabAST f, ← elabAST a]
   | `(ast| fun $vs:var* => $b:ast) => do
     vs.foldrM (init := ← elabAST b) fun v acc => do
@@ -131,13 +133,11 @@ partial def elabAST : TSyntax `ast → TermElabM Expr
   | `(ast| let $v:var $vs:var* := $val:ast; $b:ast) => do
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
-    mkAppM ``AST.app #[← mkAppM ``AST.lam #[← elabVar v, ← elabAST b], lam]
+    mkAppM ``AST.lt #[← elabVar v, lam, ← elabAST b]
   | `(ast| rec $v:var $vs:var* := $val:ast; $b:ast) => do
     let lam ← vs.foldrM (init := ← elabAST val) fun v acc => do
       mkAppM ``AST.lam #[← elabVar v, acc]
     mkAppM ``AST.rc #[← elabVar v, lam, ← elabAST b]
-  | `(ast| if $a:ast then $b:ast else $c:ast) => do
-    mkAppM ``AST.fork #[← elabAST a, ← elabAST b, ← elabAST c]
   | `(ast| ($x:ast)) => elabAST x
   | _ => throwUnsupportedSyntax
 
