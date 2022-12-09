@@ -62,20 +62,18 @@ partial def substM (dep : F) (arg target : Ptr) : ReduceM Ptr :=
     let a ← substM dep arg a
     addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
 
-partial def reduceM (ptr : Ptr) : ReduceM Ptr := do
-  match (← get).cache.find? ptr with
-  | some ptr => pure ptr
-  | none =>
-    let ptr' ← match ptr.tag with
-      | .var
-      | .lam => pure ptr
-      | .app =>
-        let (f, a) ← getAppFunArg ptr
-        let f ← reduceM f
-        match f.tag with
+partial def reduceM (ptr : Ptr) : ReduceM Ptr :=
+  match ptr.tag with
+  | .var | .lam => return ptr
+  | .app => do match (← get).cache.find? ptr with
+    | some ptr => return ptr
+    | none =>
+      let (f, a) ← getAppFunArg ptr
+      let f ← reduceM f
+      let ptr' ← match f.tag with
         | .lam => reduceM $ ← substM F.zero (← reduceM a) (← getLamBody f)
         | _ => let a ← reduceM a; addExprHash ⟨.app, hashPtrPair f a⟩ (.app f a)
-    modifyGet fun stt => (ptr', { stt with cache := stt.cache.insert ptr ptr' })
+      modifyGet fun stt => (ptr', { stt with cache := stt.cache.insert ptr ptr' })
 
 def reduce (ptr : Ptr) (store : StoreF) : Except String (Ptr × StoreF) :=
   match StateT.run (reduceM ptr) ⟨store, default⟩ with
