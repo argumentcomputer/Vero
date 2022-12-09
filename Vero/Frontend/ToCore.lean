@@ -39,7 +39,7 @@ def AST.toCore : AST → Core.AST
     | .add => ⟦$NAT.ADD  $x $y⟧
     | .mul => ⟦$NAT.MUL  $x $y⟧
     | .sub => unreachable!
-    | .div => ⟦$NAT.DIV  $x $y⟧
+    | .div => .app (.app NAT.DIV x) y--⟦$NAT.DIV  $x $y⟧
     | .eq  => ⟦$BOOL.EQ  $x $y⟧
     | .neq => ⟦$BOOL.NEQ $x $y⟧
     | .lt  => ⟦$BOOL.LT  $x $y⟧
@@ -55,6 +55,7 @@ def AST.toCore : AST → Core.AST
   | .lam v b => .lam v.name b.toCore
   | .app (.lam ⟨s, _⟩ (.var ⟨s', _⟩)) x => if s == s' then x.toCore else .var s'
   | .app f a => .app f.toCore a.toCore
+  | .lt ⟨s, _⟩ v (.var ⟨s', _⟩) => if s == s' then v.toCore else .var s'
   | .lt ⟨s, _⟩ v b => .app (.lam s b.toCore) v.toCore
   | .rc ⟨s, _⟩ v b =>
     if v.hasFreeVar s then .app (.lam s b.toCore) (FIX $ .lam s v.toCore)
