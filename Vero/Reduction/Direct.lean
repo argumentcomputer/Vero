@@ -1,6 +1,14 @@
 import Vero.Common.Typ
 import Vero.Common.Expr
 
+/-- Tries to get the `n`-th item of a list. Also returns its explored length -/
+def List.get?Len (l : List α) (n : Nat) : (Option α) × Nat :=
+  let rec aux (acc : Nat) : List α → Nat → (Option α) × Nat
+    | [], _ => (none, acc)
+    | h :: _, 0 => (some h, acc)
+    | _ :: t, n + 1 => aux acc.succ t n
+  aux 0 l n
+
 namespace Vero
 
 inductive Norm where
@@ -13,7 +21,9 @@ namespace Expr
 mutual
 
   partial def eval (env : List Norm) : Expr → Norm
-    | .var j => env.getD j $ .neu (j - env.length) []
+    | .var j => match env.get?Len j with
+      | (some norm, _) => norm
+      | (none, len) => .neu (j - len) []
     | .lam bod => .lam bod env
     | .app fnc arg => apply (fnc.eval env) (arg.eval env)
 
@@ -36,9 +46,10 @@ mutual
     | .lam bod => .lam $ bod.inst env dep.succ shift
     | t@(.var j) =>
       if j < dep then t else
-      match env.get? (j - dep) with
-      | some val => quote val (shift + dep)
-      | none     => .var (j - dep - env.length)
+      let j := j - dep
+      match env.get?Len j with
+      | (some val, _) => quote val (shift + dep)
+      | (none, len) => .var (j - len)
 
 end
 

@@ -30,6 +30,7 @@ def F.asHex (n : F) : String :=
 instance : Inhabited F := ⟨.ofNat 0⟩
 
 def F.zero : F := default
+def F.one  : F := .ofNat 1
 def F.succ (f : F) : F := f + .ofNat 1
 def F.pred (f : F) : F := f - .ofNat 1
 
