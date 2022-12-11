@@ -70,10 +70,11 @@ partial def evalM (exprPtr envPtr : Ptr) : ReduceM Ptr := do
   | none =>
     let normPtr ← match exprPtr.tag with
       | .var =>
-        let (ptr, len) ← findInEnvN envPtr exprPtr.val
+        let j := exprPtr.val
+        let (ptr, len) ← findInEnvN envPtr j
         match ptr.tag with
         | .envNil =>
-          let var := exprPtr.val - len
+          let var := j - len
           let envPtr := ⟨.envNil, .zero⟩
           addExprF ⟨.normNeu, hashFPtr var envPtr⟩ (.normNeu var envPtr)
         | _ => pure ptr
@@ -141,7 +142,7 @@ partial def instM (exprPtr envPtr : Ptr) (dep shift : F) : ReduceM Ptr :=
     let j := exprPtr.val
     if j < dep then pure exprPtr else do
     let j := j - dep
-    let (ptr, len) ← findInEnvN envPtr exprPtr.val
+    let (ptr, len) ← findInEnvN envPtr j
     match ptr.tag with
     | .envNil => let j := j - len; addExprF ⟨.var, j⟩ (.var j)
     | _ => quoteM ptr (shift + dep)

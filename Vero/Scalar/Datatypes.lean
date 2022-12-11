@@ -32,7 +32,6 @@ instance : Inhabited F := ⟨.ofNat 0⟩
 def F.zero : F := default
 def F.one  : F := .ofNat 1
 def F.succ (f : F) : F := f + .ofNat 1
-def F.pred (f : F) : F := f - .ofNat 1
 
 def Tag.toF : Tag → F
   | var => .ofNat 0
