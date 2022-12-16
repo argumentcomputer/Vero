@@ -28,4 +28,3 @@ require Poseidon from git
 
 lean_exe Tests.Reduction
 lean_exe Tests.TypeInference
-lean_exe Tests.ReductionBenchmarks

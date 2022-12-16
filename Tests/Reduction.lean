@@ -14,7 +14,7 @@ def pairs : List (Frontend.AST × Value) := [
   (⟦let f x y := x * y; let f3 := f 3; f3 2⟧, .nat 6),
   (⟦let div x y := x / y; div 6 3⟧, .nat 2),
   (⟦let gap x := if x > 5 then 10 else 1; gap 6⟧, .nat 10),
-  (⟦rec sum x := if x > 0 then x + (sum (x - 1)) else 0; sum 2⟧, .nat 3)
+  (⟦rec sum x := if x > 0 then x + (sum (x - 1)) else 0; sum 4⟧, .nat 10)
 ]
 
 open LSpec Reduction in
