@@ -1,4 +1,4 @@
-import Vero.Core.Scalar.Datatypes
+import Vero.Core.Reduction.Scalar.Datatypes
 import YatimaStdLib.Fin
 import Poseidon.ForLurk
 

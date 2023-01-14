@@ -1,5 +1,5 @@
-import Vero.Core.Scalar.Datatypes
-import Vero.Core.Scalar.Utils
+import Vero.Core.Reduction.Scalar.Datatypes
+import Vero.Core.Reduction.Scalar.Utils
 import YatimaStdLib.Ord
 
 namespace Vero.Core.Scalar

@@ -1,5 +1,5 @@
-import Vero.Core.Scalar.Utils
 import Vero.Core.Expr
+import Vero.Core.Reduction.Scalar.Utils
 
 namespace Vero.Core.Scalar
 

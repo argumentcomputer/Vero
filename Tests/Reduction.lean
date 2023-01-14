@@ -1,10 +1,10 @@
 import LSpec
 import Vero.Frontend.Syn.DSL
-import Vero.Core.Reduction.TypedExpr
+import Vero.Pipelines.Reduce
 
 open Vero
 
-open Frontend.Syn.DSL Core
+open Frontend.Syn.DSL Core Pipelines
 
 def pairs : List (Frontend.Syn × Value) := [
   (⟦2 <= 3⟧, .bool true),
@@ -21,9 +21,9 @@ def pairs : List (Frontend.Syn × Value) := [
 open LSpec in
 def main := lspecIO $
   pairs.foldl (init := .done) fun tSeq (syn, expectedVal) => tSeq ++
-    withExceptOk s!"TypedExpr of {syn}" (TypedExpr.ofSyn syn) fun te =>
-      withExceptOk "Scalar reduction succeeds" te.scalarReduce fun scalarVal =>
-        let directVal := te.directReduce
+    withExceptOk s!"Input of {syn}" (Input.ofSyn syn) fun inp =>
+      withExceptOk "Scalar reduction succeeds" inp.reduceScalar fun scalarVal =>
+        let directVal := inp.reduceDirect
         test s!"Scalar reduced {scalarVal} matches expected {expectedVal}"
             (scalarVal == expectedVal) ++
           test s!"Scalar reduced {scalarVal} matches directly reduced {directVal}"
