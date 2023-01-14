@@ -1,7 +1,7 @@
 import Std.Data.RBMap
 import YatimaStdLib.Nat
 
-namespace Vero.Scalar
+namespace Vero.Core.Scalar
 
 inductive Tag
   | var | lam | app
@@ -81,4 +81,4 @@ def StoreF.toString (s : StoreF) : String :=
 
 instance : ToString StoreF := ⟨StoreF.toString⟩
 
-end Vero.Scalar
+end Vero.Core.Scalar

@@ -1,19 +1,23 @@
-import Vero.Frontend.ToCore
-import Vero.Frontend.TypeInference
-import Vero.Common.Value
-import Vero.Scalar.Encoding
-import Vero.Scalar.Decoding
-import Vero.Reduction.Direct
-import Vero.Reduction.Scalar
+import Vero.Frontend.Lam.Lam
+import Vero.Frontend.Syn.Syn
+import Vero.Frontend.SynToLam
+import Vero.Core.Expr
+-- import Vero.Frontend.ToCore
+-- import Vero.Frontend.TypeInference
+-- import Vero.Common.Value
+-- import Vero.Scalar.Encoding
+-- import Vero.Scalar.Decoding
+-- import Vero.Reduction.Direct
+-- import Vero.Reduction.Scalar
 
-namespace Vero.Reduction
+namespace Vero.Core
 
 structure TypedExpr where
-  ast  : Frontend.AST
-  core : Core.AST
+  syn  : Frontend.Syn
+  lam  : Frontend.Lam
+  typ  : Frontend.Typ
   expr : Expr
-  typ  : Typ
-  equivCore : core = ast.toCore
+  equivCore : lam = syn.toLam
   equivExpr : core.toExpr = .ok expr
   wellTyped : ast.inferTyp = .ok typ
 

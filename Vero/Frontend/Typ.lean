@@ -1,4 +1,4 @@
-namespace Vero
+namespace Vero.Frontend
 
 inductive Typ
   | hole
@@ -18,4 +18,4 @@ def Typ.toString : Typ → String
 
 instance : ToString Typ := ⟨Typ.toString⟩
 
-end Vero
+end Vero.Frontend

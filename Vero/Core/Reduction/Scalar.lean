@@ -1,8 +1,8 @@
-import Vero.Scalar.Datatypes
-import Vero.Scalar.Utils
+import Vero.Core.Scalar.Datatypes
+import Vero.Core.Scalar.Utils
 import YatimaStdLib.Ord
 
-namespace Vero.Scalar
+namespace Vero.Core.Scalar
 
 structure EvalState where
   store : StoreF
@@ -159,4 +159,4 @@ def reduce (ptr : Ptr) (store : StoreF) : Except String (Ptr × StoreF) :=
   | (.error err, _) => .error err
   | (.ok ptr, ⟨store, _, _⟩) => .ok (ptr, store)
 
-end Vero.Scalar
+end Vero.Core.Scalar

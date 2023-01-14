@@ -1,0 +1,27 @@
+{"version": 4,
+ "packagesDir": "./lake-packages",
+ "packages":
+ [{"git":
+   {"url": "https://github.com/yatima-inc/YatimaStdLib.lean",
+    "subDir?": null,
+    "rev": "704823e421b333ea9960347e305c60f654618422",
+    "name": "YatimaStdLib",
+    "inputRev?": "704823e421b333ea9960347e305c60f654618422"}},
+  {"git":
+   {"url": "https://github.com/yatima-inc/LSpec.git",
+    "subDir?": null,
+    "rev": "88f7d23e56a061d32c7173cea5befa4b2c248b41",
+    "name": "LSpec",
+    "inputRev?": "88f7d23e56a061d32c7173cea5befa4b2c248b41"}},
+  {"git":
+   {"url": "https://github.com/yatima-inc/Poseidon.lean",
+    "subDir?": null,
+    "rev": "cfda9cb724febf6894af59515860b34426a970d9",
+    "name": "Poseidon",
+    "inputRev?": "cfda9cb724febf6894af59515860b34426a970d9"}},
+  {"git":
+   {"url": "https://github.com/leanprover/std4/",
+    "subDir?": null,
+    "rev": "fde95b16907bf38ea3f310af406868fc6bcf48d1",
+    "name": "std",
+    "inputRev?": "fde95b16907bf38ea3f310af406868fc6bcf48d1"}}]}

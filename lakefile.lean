@@ -1,30 +1,25 @@
 import Lake
 open Lake DSL
 
-package vero {
-  -- add package configuration options here
-}
+package vero
 
-lean_lib Vero {
-  -- add library configuration options here
-}
+lean_lib Vero
 
 @[default_target]
-lean_exe vero {
+lean_exe vero where
   root := `Main
-}
 
 require LSpec from git
-  "https://github.com/yatima-inc/LSpec.git" @ "89798a6cb76b2b29469ff752af2fd8543b3a5515"
+  "https://github.com/yatima-inc/LSpec.git" @ "88f7d23e56a061d32c7173cea5befa4b2c248b41"
 
 require YatimaStdLib from git
-  "https://github.com/yatima-inc/YatimaStdLib.lean" @ "adaa6c339d116c5fb67d924f0952c63603f2859b"
+  "https://github.com/yatima-inc/YatimaStdLib.lean" @ "704823e421b333ea9960347e305c60f654618422"
 
 require std from git
-  "https://github.com/leanprover/std4/" @ "d83e97c7843deb1cf4a6b2a2c72aaf2ece0b4ce8"
+  "https://github.com/leanprover/std4/" @ "fde95b16907bf38ea3f310af406868fc6bcf48d1"
 
 require Poseidon from git
-  "https://github.com/yatima-inc/Poseidon.lean" @ "dcfee71e6753c9239ab922d6fdcca0c1999c2ae4"
+  "https://github.com/yatima-inc/Poseidon.lean" @ "cfda9cb724febf6894af59515860b34426a970d9"
 
 lean_exe Tests.Reduction
 lean_exe Tests.TypeInference

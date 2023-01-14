@@ -1,4 +1,4 @@
-import Vero.Frontend.AST
+import Vero.Frontend.Syn.Syn
 
 namespace Vero.Frontend
 
@@ -19,7 +19,7 @@ abbrev Ctx := Std.RBMap String Typ compare
 
 mutual
 
-partial def AST.getVarTyp (s : String) (ctx : Ctx) : AST → Except String Typ
+partial def Syn.getVarTyp (s : String) (ctx : Ctx) : Syn → Except String Typ
   | .var ⟨s', typ⟩ => if s == s' then pure typ else pure .hole
   | .lit .. => pure .hole
   | .unOp _ x => x.getVarTyp s ctx
@@ -41,7 +41,7 @@ partial def AST.getVarTyp (s : String) (ctx : Ctx) : AST → Except String Typ
   | .rc ⟨s', _⟩ v b =>
     if s == s' then pure .hole else do unify2 (← v.getVarTyp s ctx) (← b.getVarTyp s ctx)
 
-partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
+partial def Syn.fillHoles (typ : Typ) (ctx : Ctx) : Syn → Except String Syn
   | .var ⟨s, typ'⟩ => return .var ⟨s, ← unify2 typ typ'⟩
   | x@(.lit l) => do discard $ unify2 typ l.typ; return x
   | .unOp op x => match (op, typ) with
@@ -103,7 +103,7 @@ partial def AST.fillHoles (typ : Typ) (ctx : Ctx) : AST → Except String AST
     let v ← v.fillHoles sTyp ctx
     return .rc ⟨s, sTyp⟩ v b
 
-partial def AST.inferTyp (ctx : Ctx := default) : AST → Except String Typ
+partial def Syn.inferTyp (ctx : Ctx := default) : Syn → Except String Typ
   | .lit l => return l.typ
   | .var ⟨s, sTyp⟩ => match ctx.find? s with
     | some typ => unify2 typ sTyp
