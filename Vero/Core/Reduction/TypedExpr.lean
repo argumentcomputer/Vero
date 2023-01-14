@@ -15,18 +15,18 @@ open Frontend
 
 structure TypedExpr where
   syn  : Syn
-  lam  : Lam
   typ  : Typ
+  lam  : Lam
   expr : Expr
   equivCore : lam = syn.toLam
-  equivExpr : Expr.ofLam lam = .ok expr
+  equivExpr : lam.toExpr = .ok expr
   wellTyped : syn.inferTyp = .ok typ
 
 def TypedExpr.ofSyn (syn : Syn) : Except String TypedExpr :=
   let lam := syn.toLam
-  match h : Expr.ofLam lam with
+  match h : lam.toExpr with
   | .ok expr => match h' : syn.inferTyp with
-    | .ok typ => return ⟨syn, lam, typ, expr, by eq_refl, h, h'⟩
+    | .ok typ => return ⟨syn, typ, lam, expr, rfl, h, h'⟩
     | .error err => throw err
   | .error err => throw err
 

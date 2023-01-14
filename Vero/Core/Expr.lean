@@ -1,5 +1,3 @@
-import Vero.Frontend.Lam.Lam
-
 namespace Vero.Core
 
 inductive Expr
@@ -25,18 +23,6 @@ end
 
 instance : ToString Expr where 
   toString := Expr.toString
-
-open Frontend Lam in
-def ofLam (x : Lam) : Except String Expr :=
-  let rec aux (ctx fs : List String) : Lam → Except String Expr
-  | .var n => match idxFrom 0 n ctx with
-    | some i => return .var i
-    | none => match idxFrom ctx.length n fs with
-      | some i => return .var i
-      | none => throw s!"{n} not found in free variables {fs}"
-  | .lam n b => return .lam (← aux (n::ctx) fs b)
-  | .app x y => return .app (← aux ctx fs x) (← aux ctx fs y)
-  aux [] x.freeVars x
 
 def toNat (e : Expr) : Except Expr Nat :=
   let rec aux (n : Nat) : Expr → Except Expr Nat
