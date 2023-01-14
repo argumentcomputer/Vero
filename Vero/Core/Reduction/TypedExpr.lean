@@ -1,41 +1,42 @@
 import Vero.Frontend.Lam.Lam
 import Vero.Frontend.Syn.Syn
+import Vero.Frontend.Syn.TypeInference
 import Vero.Frontend.SynToLam
 import Vero.Core.Expr
--- import Vero.Frontend.ToCore
--- import Vero.Frontend.TypeInference
--- import Vero.Common.Value
--- import Vero.Scalar.Encoding
--- import Vero.Scalar.Decoding
--- import Vero.Reduction.Direct
--- import Vero.Reduction.Scalar
+import Vero.Core.Reduction.Value
+import Vero.Core.Scalar.Encoding
+import Vero.Core.Scalar.Decoding
+import Vero.Core.Reduction.Direct
+import Vero.Core.Reduction.Scalar
 
 namespace Vero.Core
 
+open Frontend
+
 structure TypedExpr where
-  syn  : Frontend.Syn
-  lam  : Frontend.Lam
-  typ  : Frontend.Typ
+  syn  : Syn
+  lam  : Lam
+  typ  : Typ
   expr : Expr
   equivCore : lam = syn.toLam
-  equivExpr : core.toExpr = .ok expr
-  wellTyped : ast.inferTyp = .ok typ
+  equivExpr : Expr.ofLam lam = .ok expr
+  wellTyped : syn.inferTyp = .ok typ
 
-def TypedExpr.ofAST (ast : Frontend.AST) : Except String TypedExpr :=
-  let core := ast.toCore
-  match h : core.toExpr with
-  | .ok expr => match h' : ast.inferTyp with
-    | .ok typ => return ⟨ast, core, expr, typ, by eq_refl, h, h'⟩
+def TypedExpr.ofSyn (syn : Syn) : Except String TypedExpr :=
+  let lam := syn.toLam
+  match h : Expr.ofLam lam with
+  | .ok expr => match h' : syn.inferTyp with
+    | .ok typ => return ⟨syn, lam, typ, expr, by eq_refl, h, h'⟩
     | .error err => throw err
   | .error err => throw err
 
 def TypedExpr.directReduce (te : TypedExpr) : Value :=
-  te.expr.reduce.toValueOf te.typ
+  .ofExprWithTyp te.expr.reduce te.typ
 
 def TypedExpr.scalarReduce (te : TypedExpr) : Except String Value := do
   let (ptr, store) := te.expr.encode
   let (ptr, store) ← Scalar.reduce ptr store
   let e ← Scalar.decode ptr store
-  return e.toValueOf te.typ
+  return .ofExprWithTyp e te.typ
 
-end Vero.Reduction
+end Vero.Core

@@ -1,10 +1,10 @@
 import LSpec
-import Vero.Frontend.DSL
-import Vero.Frontend.TypeInference
+import Vero.Frontend.Syn.DSL
+import Vero.Frontend.Syn.TypeInference
 
-open Vero Frontend.DSL
+open Vero Frontend Syn.DSL
 
-def pairs : List $ Frontend.AST × (Option Typ) := [
+def pairs : List $ Frontend.Syn × (Option Typ) := [
   (⟦3⟧, some .nat),
   (⟦3 + 3⟧, some .nat),
   (⟦3 + x⟧, some .nat),
@@ -44,4 +44,3 @@ def main := lspecIO $
         withExceptOk "Type inference succeeds" ast.inferTyp fun gotTyp =>
           test s!"Expected {expecTyp} equals {gotTyp}" (expecTyp == gotTyp)
       | none => withExceptError "Type inference fails" ast.inferTyp fun _ => .done
-#eval main
