@@ -1,11 +1,12 @@
 import LSpec
-import Vero.Frontend.DSL
-import Vero.Reduction.TypedExpr
+import Vero.Frontend.Syn.DSL
+import Vero.Core.Reduction.TypedExpr
 
 open Vero
 
-open Frontend.DSL in
-def pairs : List (Frontend.AST × Value) := [
+open Frontend.Syn.DSL Core
+
+def pairs : List (Frontend.Syn × Value) := [
   (⟦2 <= 3⟧, .bool true),
   (⟦let add x y := x + y; add 3 2⟧, .nat 5),
   (⟦let sub x y := x - y; sub 4 2⟧, .nat 2),
@@ -17,10 +18,10 @@ def pairs : List (Frontend.AST × Value) := [
   (⟦rec sum x := if x > 0 then x + (sum (x - 1)) else 0; sum 4⟧, .nat 10)
 ]
 
-open LSpec Reduction in
+open LSpec in
 def main := lspecIO $
-  pairs.foldl (init := .done) fun tSeq (ast, expectedVal) => tSeq ++
-    withExceptOk s!"TypedExpr of {ast}" (TypedExpr.ofAST ast) fun te =>
+  pairs.foldl (init := .done) fun tSeq (syn, expectedVal) => tSeq ++
+    withExceptOk s!"TypedExpr of {syn}" (TypedExpr.ofSyn syn) fun te =>
       withExceptOk "Scalar reduction succeeds" te.scalarReduce fun scalarVal =>
         let directVal := te.directReduce
         test s!"Scalar reduced {scalarVal} matches expected {expectedVal}"

@@ -1,5 +1,4 @@
-import Vero.Common.Typ
-import Vero.Common.Expr
+import Vero.Core.Expr
 
 /-- Tries to get the `n`-th item of a list. Also returns its explored length -/
 def List.get?Len (l : List α) (n : Nat) : (Option α) × Nat :=
@@ -9,7 +8,7 @@ def List.get?Len (l : List α) (n : Nat) : (Option α) × Nat :=
     | _ :: t, n + 1 => aux acc.succ t n
   aux 0 l n
 
-namespace Vero
+namespace Vero.Core
 
 inductive Norm where
   | lam : Expr → List Norm → Norm
@@ -56,10 +55,11 @@ end
 def reduce (e : Expr) : Expr :=
   quote (e.eval []) 0
 
-end Vero.Expr
+end Vero.Core.Expr
 
-namespace Vero.NonStrict
-/-
+namespace Vero.Core.NonStrict
+
+/-!
 Eval apply reduction style, non-strict version. It's not lazy because it doesn't
 update the thunks
 -/
@@ -112,4 +112,4 @@ mutual
       | none   => .var (j-dep-env.length)
 end
 
-end Vero.NonStrict
+end Vero.Core.NonStrict

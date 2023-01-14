@@ -1,7 +1,7 @@
-import Vero.Common.Expr
-import Vero.Common.Typ
+import Vero.Core.Expr
+import Vero.Frontend.Typ
 
-namespace Vero
+namespace Vero.Core
 
 inductive Value
   | expr : Expr → Value
@@ -10,7 +10,9 @@ inductive Value
   | pair : Value → Value → Value
   deriving Inhabited, BEq
 
-protected def Value.toString : Value → String
+namespace Value
+
+protected def toString : Value → String
   | .expr e => toString e
   | .nat  n => toString n
   | .bool b => toString b
@@ -18,27 +20,14 @@ protected def Value.toString : Value → String
 
 instance : ToString Value := ⟨Value.toString⟩
 
-namespace Expr
-
-def toNat (e : Expr) : Except Expr Nat :=
-  let rec countSucc (n : Nat) : Expr → Except Expr Nat
-    | lam (lam (var 1)) => return n
-    | lam (lam (app (var 0) x)) => countSucc (n+1) x
-    | x => throw x
-  countSucc 0 e
-
-def toBool : Expr → Except Expr Bool
-  | lam (lam (var 0)) => return false
-  | lam (lam (var 1)) => return true
-  | x => throw x
-
+open Frontend (Typ) in
 mutual
 
   /--
   Tries to convert an Expr to a certain type. Results in `.expr` in case of
   failure.
   -/
-  partial def toValueOf (e : Expr) : Typ → Value
+  partial def ofExprWithTyp (e : Expr) : Typ → Value
     | .hole
     | .pi .. => .expr e
     | .nat => match e.toNat with
@@ -47,16 +36,17 @@ mutual
     | .bool => match e.toBool with
       | .ok b => .bool b
       | .error e => .expr e
-    | .pair t₁ t₂ => match e.toPair t₁ t₂ with
+    | .pair t₁ t₂ => match toPair t₁ t₂ e with
       | .ok (f, s) => .pair f s
       | .error e => .expr e
 
   partial def toPair (a b : Typ) : Expr → Except Expr (Value × Value)
-    | lam (app (app (var 0) x) (y)) => return (x.toValueOf a, y.toValueOf b)
+    | .lam (.app (.app (.var 0) x) (y)) =>
+      return (ofExprWithTyp x a, ofExprWithTyp y b)
     | x => throw x
   
   partial def toInt (e : Expr) : Except Expr Int :=
-    match e.toPair .bool .nat with
+    match toPair .bool .nat e with
     | .ok (.bool b, .nat n) => match b with
       | false => return .ofNat n
       | true  => return .negSucc (n - 1)
@@ -65,4 +55,4 @@ mutual
 
 end
 
-end Vero.Expr
+end Vero.Core.Value

@@ -1,14 +1,14 @@
-import Vero.Core.DSL
+import Vero.Frontend.Lam.DSL
 
-namespace Vero.Core.Data
+namespace Vero.Frontend.Lam.Data
 
 open DSL
 
-def NAT : Nat → AST
+def NAT : Nat → Lam
 | 0     => ⟦λ z s. z⟧
 | n + 1 => ⟦λ z s. s $(NAT n)⟧
 
-def FIX (e : AST) : AST :=
+def FIX (e : Lam) : Lam :=
   .app ⟦λ f. (λ x. f (λ v. x x v)) (λ x. f (λ v. x x v))⟧ e
 
 namespace NAT
@@ -68,7 +68,7 @@ end PAIR
 A `true` on the first component means a negative number. This simplifies
 multiplication and division by avoiding a `not` on the `xor` for the signal.
 -/
-def INT : Int → AST
+def INT : Int → Lam
   | .ofNat   n => ⟦$PAIR.PROD $BOOL.FF $(NAT n)⟧
   | .negSucc n => ⟦$PAIR.PROD $BOOL.TT $(NAT (n + 1))⟧
 
@@ -80,9 +80,9 @@ def NEG := ⟦λ a. $PROD ($NOT ($FST a)) ($SND a)⟧
 def MUL := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.MUL ($SND a) ($SND b))⟧
 -- def DIV := ⟦λ a b. $PROD ($XOR ($FST a) ($FST b)) ($NAT.DIV ($SND a) ($SND b))⟧
 
--- def ADD : AST := sorry
+-- def ADD : Lam := sorry
 -- def SUB := ⟦λ a b. $ADD a ($NEG b)⟧
 
 end INT
 
-end Vero.Core.Data
+end Vero.Frontend.Lam.Data

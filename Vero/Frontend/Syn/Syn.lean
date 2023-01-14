@@ -1,6 +1,6 @@
-import Vero.Common.Typ
 import YatimaStdLib.Ord
 import Std.Data.RBMap
+import Vero.Frontend.Typ
 
 namespace Vero.Frontend
 
@@ -50,21 +50,21 @@ def Var.toString : Var → String
   | ⟨name, .hole⟩ => name
   | ⟨name, typ⟩ => s!"({name} : {typ})"
 
-inductive AST
-  | lit : Lit → AST
-  | var : Var → AST
-  | unOp : UnOp → AST → AST
-  | binOp : BinOp → AST → AST → AST
-  | fork : AST → AST → AST → AST
-  | lam : Var → AST → AST
-  | app : AST → AST → AST
-  | lt : Var → AST → AST → AST
-  | rc : Var → AST → AST → AST
+inductive Syn
+  | lit : Lit → Syn
+  | var : Var → Syn
+  | unOp : UnOp → Syn → Syn
+  | binOp : BinOp → Syn → Syn → Syn
+  | fork : Syn → Syn → Syn → Syn
+  | lam : Var → Syn → Syn
+  | app : Syn → Syn → Syn
+  | lt : Var → Syn → Syn → Syn
+  | rc : Var → Syn → Syn → Syn
   deriving Ord, Inhabited, BEq
 
-namespace AST
+namespace Syn
 
-def hasFreeVar (s : String) : AST → Bool
+def hasFreeVar (s : String) : Syn → Bool
   | .lit _ => false
   | .var ⟨s', _⟩ => s == s'
   | .unOp _ x => x.hasFreeVar s
@@ -75,15 +75,15 @@ def hasFreeVar (s : String) : AST → Bool
   | .lt ⟨s', _⟩ v b => v.hasFreeVar s || (s != s' && b.hasFreeVar s)
   | .rc ⟨s', _⟩ v b => s == s' && (v.hasFreeVar s || b.hasFreeVar s)
 
-def telescopeLam (acc : Array Var) : AST → (Array Var) × AST
+def telescopeLam (acc : Array Var) : Syn → (Array Var) × Syn
   | .lam v b => b.telescopeLam $ acc.push v
   | x => (acc, x)
 
-def telescopeApp (acc : List AST) : AST → List AST
+def telescopeApp (acc : List Syn) : Syn → List Syn
   | .app f a => f.telescopeApp (a :: acc)
   | x => x :: acc
 
-partial def toString : AST → String
+partial def toString : Syn → String
   | .lit $ .nat n => ToString.toString n
   | .lit $ .bool true  => "tt"
   | .lit $ .bool false => "ff"
@@ -101,8 +101,8 @@ partial def toString : AST → String
   | .lt v val b => s!"let {v.toString} := {val.toString}; {b.toString}"
   | .rc v val b => s!"rec {v.toString} := {val.toString}; {b.toString}"
 
-instance : ToString AST := ⟨AST.toString⟩
+instance : ToString Syn := ⟨Syn.toString⟩
 
-end AST
+end Syn
 
 end Vero.Frontend

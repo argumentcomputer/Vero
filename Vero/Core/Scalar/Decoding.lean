@@ -1,7 +1,7 @@
-import Vero.Scalar.Datatypes
-import Vero.Common.Expr
+import Vero.Core.Scalar.Datatypes
+import Vero.Core.Expr
 
-namespace Vero.Scalar
+namespace Vero.Core.Scalar
 
 open Expr
 
@@ -34,4 +34,4 @@ partial def decodeExpr (ptr : Ptr) : DecodeM Expr := do
 def decode (ptr : Ptr) (store : StoreF) : Except String Expr :=
   (StateT.run (ReaderT.run (decodeExpr ptr) ⟨store, default⟩) default).1
 
-end Vero.Scalar
+end Vero.Core.Scalar

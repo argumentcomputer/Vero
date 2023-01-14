@@ -1,7 +1,7 @@
-import Vero.Scalar.Utils
-import Vero.Common.Expr
+import Vero.Core.Scalar.Utils
+import Vero.Core.Expr
 
-namespace Vero.Scalar
+namespace Vero.Core.Scalar
 
 open Expr
 
@@ -46,4 +46,4 @@ def encode (e : Expr) : Ptr × StoreF :=
 def encode' (e : Expr) (stt : EncodeState := default) : Ptr × EncodeState :=
   StateT.run (encodeExpr e) stt
 
-end Vero.Expr
+end Vero.Core.Expr
